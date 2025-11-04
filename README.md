@@ -2,6 +2,10 @@
 
 A Model Context Protocol (MCP) server for Instantly.ai email campaign management.
 
+<a href="https://glama.ai/mcp/servers/@bcharleson/Instantly-MCP">
+  <img width="380" height="200" src="https://glama.ai/mcp/servers/@bcharleson/Instantly-MCP/badge" alt="Instantly Server MCP server" />
+</a>
+
 ## Quick Start
 
 ### Installation
