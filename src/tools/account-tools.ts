@@ -198,12 +198,14 @@ export const accountTools = [
                 read_emulation: { type: 'boolean', description: 'Enable read emulation' },
                 spam_save_rate: { type: 'number', description: 'Rate of saving emails from spam' },
                 weekday_only: { type: 'boolean', description: 'Send warmup emails only on weekdays' }
-              }
+              },
+              additionalProperties: false
             },
             warmup_custom_ftag: { type: 'string', description: 'Custom warmup tag' },
             increment: { type: 'string', description: 'Increment setting for warmup ramp-up' },
             reply_rate: { type: 'number', description: 'Target reply rate for warmup emails' }
-          }
+          },
+          additionalProperties: false
         },
 
         // Sending limits and configuration
