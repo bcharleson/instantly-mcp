@@ -106,8 +106,7 @@ export const leadTools = [
         verify_leads_on_import: { type: 'boolean', description: 'Verify email before import (adds 2-5s)', default: false },
         custom_variables: {
           type: 'object',
-          description: '⚠️ Ask user about campaign variables first! Match exact field names. Examples: {"headcount": "50-100", "revenue": "$1M-$5M"}',
-          additionalProperties: true
+          description: '⚠️ Ask user about campaign variables first! Match exact field names. Examples: {"headcount": "50-100", "revenue": "$1M-$5M"}'
         }
       },
       required: [],
@@ -134,8 +133,7 @@ export const leadTools = [
         assigned_to: { type: 'string', description: 'User UUID to assign' },
         custom_variables: {
           type: 'object',
-          description: '⚠️ REPLACES entire object! Include ALL existing + new fields. Get current with get_lead first.',
-          additionalProperties: true
+          description: '⚠️ REPLACES entire object! Include ALL existing + new fields. Get current with get_lead first.'
         }
       },
       required: ['lead_id'],
@@ -231,8 +229,7 @@ export const leadTools = [
               assigned_to: { type: 'string', description: 'User UUID' },
               custom_variables: {
                 type: 'object',
-                description: '⚠️ Align with campaign variables!',
-                additionalProperties: true
+                description: '⚠️ Align with campaign variables!'
               }
             },
             additionalProperties: false

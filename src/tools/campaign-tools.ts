@@ -202,19 +202,16 @@ export const campaignTools = [
             schedules: {
               type: 'array',
               items: {
-                type: 'object',
-                additionalProperties: true
+                type: 'object'
               }
             }
-          },
-          additionalProperties: true
+          }
         },
         sequences: {
           type: 'array',
           description: 'OPTIONAL: New email sequences to UPDATE the existing sequences. Only provide this if you want to MODIFY the email sequences.',
           items: {
-            type: 'object',
-            additionalProperties: true
+            type: 'object'
           }
         },
         email_gap: {
@@ -269,8 +266,7 @@ export const campaignTools = [
         },
         auto_variant_select: {
           type: 'object',
-          description: 'OPTIONAL: New auto variant selection settings to UPDATE. Only provide this if you want to MODIFY the auto variant selection configuration.',
-          additionalProperties: true
+          description: 'OPTIONAL: New auto variant selection settings to UPDATE. Only provide this if you want to MODIFY the auto variant selection configuration.'
         },
         match_lead_esp: {
           type: 'boolean',

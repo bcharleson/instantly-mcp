@@ -74,7 +74,8 @@ export const emailTools = [
           properties: {
             html: { type: 'string', description: 'HTML content' },
             text: { type: 'string', description: 'Plain text content' }
-          }
+          },
+          additionalProperties: false
         }
       },
       required: ['reply_to_uuid', 'eaccount', 'subject', 'body'],
