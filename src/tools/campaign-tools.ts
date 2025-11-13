@@ -10,7 +10,8 @@ import { BUSINESS_PRIORITY_TIMEZONES, DEFAULT_TIMEZONE } from '../timezone-confi
 export const campaignTools = [
   {
     name: 'create_campaign',
-    description: 'Create email campaign with two-step workflow. STEP 1 (omit email_list): Call with name, subject, body to discover eligible accounts (active, setup complete, warmup complete). Tool asks user how many accounts to use. STEP 2 (include email_list): Call again with selected emails from Step 1. ⚠️ CRITICAL: NEVER use placeholder emails (test@example.com). ONLY use emails from eligible list. Multiple emails = ONE campaign with ALL emails in single email_list array (NOT separate campaigns). Users typically have 10-100+ accounts. Multi-step sequences: Use sequence_steps (2-10) and step_delay_days (1-30). Large lists (50+ emails) may take 10-30s to process.',
+    title: 'Create Campaign',
+    description: 'Create email campaign with two-step workflow. STEP 1: Call with name, subject, body to discover eligible accounts. STEP 2: Call with email_list from Step 1. ⚠️ NEVER use placeholder emails. Multi-step sequences: Use sequence_steps (2-10) and step_delay_days (1-30).',
     inputSchema: {
       type: 'object',
       properties: {
@@ -129,7 +130,8 @@ export const campaignTools = [
 
   {
     name: 'list_campaigns',
-    description: 'List campaigns with pagination (limit, starting_after from next_starting_after). NO status parameter - list ALL, then filter response by status (0=Draft, 1=Active, 2=Paused, 3=Completed). Use search for campaign NAME only (not status). Use next_starting_after cursor for next page.',
+    title: 'List Campaigns',
+    description: 'List campaigns with pagination. Filter by search (name only). Use exact cursor from next_starting_after. Filter by status client-side.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -158,7 +160,8 @@ export const campaignTools = [
 
   {
     name: 'get_campaign',
-    description: '🔍 GET CAMPAIGN DETAILS BY ID\n\nReturns complete details of a single campaign by ID. Read-only operation.\n\n**Required:**\n- `campaign_id`: Campaign UUID (get from list_campaigns if needed)\n\n**Returns:**\n- Complete campaign configuration\n- Email sequences and variants\n- Sending schedules and timezones\n- Sender email accounts (email_list)\n- Tracking settings\n- Daily limits and gaps\n- Campaign status and timestamps\n\n**Performance:**\n- Fast response (< 1 second)\n- No pagination needed\n\n**Related Tools:**\n- Use `list_campaigns` to find campaigns or get campaign IDs\n- Use `update_campaign` to modify campaign settings',
+    title: 'Get Campaign',
+    description: 'Get complete campaign details by ID. Returns configuration, sequences, schedules, sender accounts, tracking settings, and status.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -171,7 +174,8 @@ export const campaignTools = [
 
   {
     name: 'update_campaign',
-    description: 'Update campaign settings (partial updates). Requires campaign_id. All other fields optional - only provide what you want to change. Common: name, sequences, tracking, limits, email_list.',
+    title: 'Update Campaign',
+    description: 'Update campaign settings (partial updates). Only provide fields to change. Common: name, sequences, tracking, limits, email_list.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -306,7 +310,8 @@ export const campaignTools = [
 
   {
     name: 'activate_campaign',
-    description: 'Activate campaign to start sending (Draft → Active). ⚠️ PREREQUISITES: Campaign must have sender accounts (email_list), leads, valid sequences, and schedule. Verify with get_campaign first. Sender accounts must be active with warmup complete. Use pause_campaign to stop.',
+    title: 'Activate Campaign',
+    description: 'Activate campaign to start sending. ⚠️ Prerequisites: sender accounts, leads, sequences, schedule. Verify with get_campaign first.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -319,7 +324,8 @@ export const campaignTools = [
 
   {
     name: 'pause_campaign',
-    description: 'Pause active campaign to temporarily stop sending. Campaign status changes to Paused (2). Email sending stops immediately, but leads remain in campaign and sequences pause at current step. Use activate_campaign to resume. Can only pause Active (status=1) campaigns.',
+    title: 'Pause Campaign',
+    description: 'Pause active campaign to stop sending. Leads remain in campaign. Use activate_campaign to resume. Only works on Active campaigns.',
     inputSchema: {
       type: 'object',
       properties: {

@@ -75,9 +75,9 @@ export function registerMcpHandlers(server: Server, apiKey?: string): void {
     console.error('[Instantly MCP] 🎨 Icons loaded:', icons.length > 0 ? `✅ ${icons.length} icon(s)` : '❌ Missing');
 
     // Enhanced initialization response matching HTTP transport
-    // Use 2025-03-26 for Claude Desktop/Web compatibility (supports authorization)
+    // Updated to 2025-06-18 for latest MCP protocol features
     const initResponse = {
-      protocolVersion: '2025-03-26',
+      protocolVersion: '2025-06-18',
       capabilities: {
         tools: {
           listChanged: true,
@@ -92,7 +92,7 @@ export function registerMcpHandlers(server: Server, apiKey?: string): void {
       },
       serverInfo: {
         name: 'instantly-mcp',
-        version: '1.1.0',
+        version: '1.2.0',
         icons: icons,
         description: 'Instantly.ai email automation and campaign management tools',
       },

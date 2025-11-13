@@ -8,7 +8,8 @@
 export const analyticsTools = [
   {
     name: 'get_campaign_analytics',
-    description: 'Get campaign performance metrics (opens, clicks, replies, bounces). Supports filtering by campaign ID(s) and date range.',
+    title: 'Get Campaign Analytics',
+    description: 'Get campaign performance metrics (opens, clicks, replies, bounces). Filter by campaign ID(s) and date range.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -43,6 +44,7 @@ export const analyticsTools = [
 
   {
     name: 'get_daily_campaign_analytics',
+    title: 'Get Daily Campaign Analytics',
     description: 'Get day-by-day campaign performance analytics with date filtering',
     inputSchema: {
       type: 'object',
@@ -75,6 +77,7 @@ export const analyticsTools = [
 
   {
     name: 'get_warmup_analytics',
+    title: 'Get Warmup Analytics',
     description: 'Get email warmup analytics for one or more accounts',
     inputSchema: {
       type: 'object',

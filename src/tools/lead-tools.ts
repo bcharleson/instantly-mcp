@@ -8,7 +8,8 @@
 export const leadTools = [
   {
     name: 'list_leads',
-    description: 'List leads with pagination (limit, starting_after from pagination.next_starting_after). Filter by campaign, list_id, search (name/email), filter (FILTER_VAL_CONTACTED/NOT_CONTACTED/COMPLETED/UNSUBSCRIBED/ACTIVE, FILTER_LEAD_INTERESTED/MEETING_BOOKED/CLOSED), distinct_contacts. Use EXACT cursor from pagination.next_starting_after for next page (NOT lead IDs/emails). No cursor = all results.',
+    title: 'List Leads',
+    description: 'List leads with pagination. Filter by campaign, list, search, or status. Use exact cursor from pagination.next_starting_after.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -66,6 +67,7 @@ export const leadTools = [
 
   {
     name: 'get_lead',
+    title: 'Get Lead',
     description: 'Get lead details by ID',
     inputSchema: {
       type: 'object',
@@ -79,7 +81,8 @@ export const leadTools = [
 
   {
     name: 'create_lead',
-    description: 'Create lead with custom variables. ⚠️ CRITICAL: When using campaign_id, ALWAYS ask user about custom_variables to align with existing campaign fields (e.g., headcount, revenue). Match EXACT field names. Use skip_if_in_campaign to prevent duplicates. Set verify_leads_on_import for email validation.',
+    title: 'Create Lead',
+    description: 'Create lead with custom variables. ⚠️ When using campaign_id, match custom_variables to existing campaign fields. Use skip_if_in_campaign to prevent duplicates.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -114,7 +117,8 @@ export const leadTools = [
 
   {
     name: 'update_lead',
-    description: 'Update lead (partial updates supported). ⚠️ custom_variables REPLACES entire object - include ALL existing fields + changes. Get current data with get_lead first.',
+    title: 'Update Lead',
+    description: 'Update lead (partial updates). ⚠️ custom_variables replaces entire object - include all existing fields. Get current data with get_lead first.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -141,7 +145,8 @@ export const leadTools = [
 
   {
     name: 'list_lead_lists',
-    description: 'List lead lists with pagination (limit, starting_after from pagination cursor). Filter by search (name), has_enrichment_task. Use EXACT cursor from pagination field for next page (NOT manual timestamps). No cursor = all results.',
+    title: 'List Lead Lists',
+    description: 'List lead lists with pagination. Filter by search or enrichment status. Use exact cursor from pagination field.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -156,7 +161,8 @@ export const leadTools = [
 
   {
     name: 'create_lead_list',
-    description: 'Create lead list to organize leads by source/segment. Use for batch imports or organizing prospects. Alternative: Add leads directly to campaigns with create_lead (campaign_id) - faster and simpler. Set has_enrichment_task=true to auto-enrich lead data.',
+    title: 'Create Lead List',
+    description: 'Create lead list to organize leads by source/segment. Set has_enrichment_task=true to auto-enrich data.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -171,6 +177,7 @@ export const leadTools = [
 
   {
     name: 'update_lead_list',
+    title: 'Update Lead List',
     description: 'Update lead list (name, enrichment, owner). Partial updates supported.',
     inputSchema: {
       type: 'object',
@@ -187,7 +194,8 @@ export const leadTools = [
 
   {
     name: 'get_verification_stats_for_lead_list',
-    description: 'Get email verification statistics for lead list (verified, invalid, risky, catch-all, pending counts)',
+    title: 'Get Verification Stats',
+    description: 'Get email verification statistics for lead list (verified, invalid, risky, catch-all, pending)',
     inputSchema: {
       type: 'object',
       properties: {
@@ -200,7 +208,8 @@ export const leadTools = [
 
   {
     name: 'add_leads_to_campaign_or_list_bulk',
-    description: 'Bulk add up to 1,000 leads to campaign OR list (not both). 10-100x faster than individual create_lead. Use skip_if_in_campaign to prevent duplicates. Set verify_leads_on_import for email validation. Response shows detailed breakdown (uploaded, duplicates, invalid, etc.).',
+    title: 'Bulk Add Leads',
+    description: 'Bulk add up to 1,000 leads to campaign OR list. 10-100x faster than individual create_lead. Use skip_if_in_campaign to prevent duplicates.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -247,7 +256,8 @@ export const leadTools = [
 
   {
     name: 'delete_lead',
-    description: '🗑️ DESTRUCTIVE: Permanently delete lead. ⚠️ CANNOT BE UNDONE! Removes from all campaigns/lists, deletes email history and analytics. Always confirm with user first. Alternatives: update_lead (pause), move_leads_to_campaign_or_list (move).',
+    title: 'Delete Lead',
+    description: '🗑️ DESTRUCTIVE: Permanently delete lead. ⚠️ CANNOT BE UNDONE! Removes from all campaigns/lists. Always confirm with user first.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -263,7 +273,8 @@ export const leadTools = [
 
   {
     name: 'move_leads_to_campaign_or_list',
-    description: 'Move/copy leads between campaigns/lists (background job). Requires to_campaign_id OR to_list_id (not both). Select leads via: ids, search, filter, campaign, list_id. Set copy_leads=true to copy instead of move. Returns background job ID - check status with /background-jobs/{id}.',
+    title: 'Move/Copy Leads',
+    description: 'Move/copy leads between campaigns/lists (background job). Requires to_campaign_id OR to_list_id. Set copy_leads=true to copy instead of move.',
     inputSchema: {
       type: 'object',
       properties: {

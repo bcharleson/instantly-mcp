@@ -8,7 +8,8 @@
 export const emailTools = [
   {
     name: 'list_emails',
-    description: 'List emails with pagination (limit, starting_after from next_starting_after). Filter by campaign_id (recommended for large datasets), search, eaccount, is_unread, email_type. Use next_starting_after cursor for next page.',
+    title: 'List Emails',
+    description: 'List emails with pagination. Filter by campaign_id, search, account, or type. Use exact cursor from next_starting_after.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -36,6 +37,7 @@ export const emailTools = [
 
   {
     name: 'get_email',
+    title: 'Get Email',
     description: 'Get email details by ID',
     inputSchema: {
       type: 'object',
@@ -49,7 +51,8 @@ export const emailTools = [
 
   {
     name: 'reply_to_email',
-    description: '🚨 SENDS REAL EMAILS! ⚠️ ALWAYS confirm with user BEFORE calling - show recipient, subject, body. Get explicit approval. Cannot undo! Requires: reply_to_uuid (from list_emails), eaccount (active sender), subject, body (html/text).',
+    title: 'Reply to Email',
+    description: '🚨 SENDS REAL EMAILS! ⚠️ ALWAYS confirm with user BEFORE calling. Cannot undo! Requires reply_to_uuid, eaccount, subject, body.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -81,6 +84,7 @@ export const emailTools = [
 
   {
     name: 'count_unread_emails',
+    title: 'Count Unread Emails',
     description: 'Count unread emails in inbox (read-only)',
     inputSchema: {
       type: 'object',
@@ -91,7 +95,8 @@ export const emailTools = [
 
   {
     name: 'verify_email',
-    description: 'Verify email deliverability (5-45s). Returns status (valid/invalid/risky/unknown/catch-all), score (0-100), reason, is_disposable, is_role_based. For bulk (10+), use verify_leads_on_import in create_lead instead.',
+    title: 'Verify Email',
+    description: 'Verify email deliverability (5-45s). Returns status, score, reason, flags. For bulk verification, use verify_leads_on_import in create_lead.',
     inputSchema: {
       type: 'object',
       properties: {

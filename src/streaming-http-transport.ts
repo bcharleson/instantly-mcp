@@ -269,9 +269,9 @@ export class StreamingHttpTransport {
     });
 
     // MCP Protocol Version header (required by spec)
-    // Use 2025-03-26 for Claude Desktop/Web compatibility
+    // Updated to 2025-06-18 for latest MCP protocol features
     this.app.use((req, res, next) => {
-      res.setHeader('mcp-protocol-version', '2025-03-26');
+      res.setHeader('mcp-protocol-version', '2025-06-18');
       next();
     });
   }
