@@ -176,7 +176,7 @@ export class StreamingHttpTransport {
         'X-Content-Type-Options': 'nosniff',
         'X-Frame-Options': 'DENY',
         'X-XSS-Protection': '1; mode=block',
-        'Server': 'instantly-mcp/1.1.0'
+        'Server': 'instantly-mcp/1.2.0'
       });
       next();
     });
@@ -299,10 +299,10 @@ export class StreamingHttpTransport {
       res.json({
         status: 'healthy',
         service: 'instantly-mcp',
-        version: '1.1.0',
+        version: '1.2.0',
         transport: 'dual-protocol',
         protocols: {
-          streamable_http: '2025-03-26',
+          streamable_http: '2025-06-18',
           sse: '2024-11-05'
         },
         timestamp: new Date().toISOString(),
@@ -323,11 +323,11 @@ export class StreamingHttpTransport {
     this.app.get('/info', (req, res) => {
       res.json({
         name: 'Instantly MCP Server',
-        version: '1.1.0',
+        version: '1.2.0',
         description: 'Official Instantly.ai MCP server with 34 email automation tools',
         transport: 'streaming-http',
         endpoint: 'https://mcp.instantly.ai/mcp',
-        protocol: '2025-03-26',
+        protocol: '2025-06-18',
         tools: 34,
         capabilities: {
           tools: true,
@@ -571,7 +571,7 @@ export class StreamingHttpTransport {
       // Return MCP server capabilities instead of OAuth flow
       res.json({
         server: 'instantly-mcp',
-        version: '1.1.0',
+        version: '1.2.0',
         protocol: 'mcp',
         transport: 'streamable-http',
         auth: {
@@ -652,9 +652,9 @@ export class StreamingHttpTransport {
       // Return server info for GET requests
       res.json({
         server: 'instantly-mcp',
-        version: '1.1.0',
+        version: '1.2.0',
         transport: 'streamable-http',
-        protocol: '2025-03-26',
+        protocol: '2025-06-18',
         endpoints: {
           'mcp_post': apiKey ? `/mcp/${apiKey}` : '/mcp',
           'messages_post': '/messages',
@@ -867,7 +867,7 @@ export class StreamingHttpTransport {
         message: `Endpoint ${req.path} not found`,
         availableEndpoints: ['/mcp', '/mcp/{API_KEY}', '/authorize', '/health', '/info'],
         transport: 'streamable-http',
-        protocol: '2025-03-26'
+        protocol: '2025-06-18'
       });
     });
   }
