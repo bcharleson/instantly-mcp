@@ -20,6 +20,7 @@ import { ErrorCode, McpError } from '@modelcontextprotocol/sdk/types.js';
 import { makeInstantlyRequest } from '../api/client.js';
 import { ENDPOINTS } from '../api/endpoints.js';
 import { handleLeadTool } from './lead-handler.js';
+import { createMCPResponse } from '../utils/response-formatter.js';
 import {
   getAllAccounts,
   getEligibleSenderAccounts,
@@ -136,19 +137,13 @@ export async function executeToolDirectly(name: string, args: any, apiKey?: stri
         const result = await getAllAccounts(apiKey, paginationParams);
 
         // Return single page with clear pagination metadata
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify({
-                data: result.data,
-                pagination: result.pagination,
-                metadata: result.metadata,
-                success: true
-              }, null, 2)
-            }
-          ]
-        };
+        // Using TOON format for token efficiency (30-60% reduction for tabular data)
+        return createMCPResponse({
+          data: result.data,
+          pagination: result.pagination,
+          metadata: result.metadata,
+          success: true
+        });
       } catch (error: any) {
         console.error('[Instantly MCP] ❌ Error in list_accounts:', error.message);
         throw error;
