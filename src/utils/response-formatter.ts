@@ -80,37 +80,83 @@ function shouldUseTOON(data: any, options: Required<FormatOptions>): boolean {
 
 /**
  * Checks if array contains uniform objects (same keys, primitive values)
+ *
+ * Updated to be more lenient with real-world API data:
+ * - Allows optional fields (not all objects need same keys)
+ * - Requires at least 50% key overlap
+ * - Normalizes data by filling missing fields with null
  */
 function isUniformArray(arr: any[]): boolean {
   if (arr.length === 0) return false;
-  
+
   // Check if all items are objects
   if (!arr.every(item => typeof item === 'object' && item !== null && !Array.isArray(item))) {
     return false;
   }
 
-  // Get keys from first object
-  const firstKeys = Object.keys(arr[0]).sort();
-  
-  // Check if all objects have same keys and primitive values
+  // Collect all unique keys across all objects
+  const allKeys = new Set<string>();
+  arr.forEach(item => {
+    Object.keys(item).forEach(key => allKeys.add(key));
+  });
+
+  const uniqueKeys = Array.from(allKeys);
+
+  // Check if objects have reasonable key overlap (at least 50%)
+  const keyOverlapThreshold = 0.5;
+  const hasGoodOverlap = arr.every(item => {
+    const itemKeys = Object.keys(item);
+    const overlap = itemKeys.filter(key => uniqueKeys.includes(key)).length;
+    return overlap / uniqueKeys.length >= keyOverlapThreshold;
+  });
+
+  if (!hasGoodOverlap) return false;
+
+  // Check if all values are primitives or simple objects
   return arr.every(item => {
-    const itemKeys = Object.keys(item).sort();
-    
-    // Same keys?
-    if (itemKeys.length !== firstKeys.length) return false;
-    if (!itemKeys.every((key, i) => key === firstKeys[i])) return false;
-    
-    // All values primitive?
     return Object.values(item).every(value => {
       const type = typeof value;
-      return type === 'string' || type === 'number' || type === 'boolean' || value === null;
+      // Allow primitives, null, and empty objects (like warmup: {})
+      if (type === 'string' || type === 'number' || type === 'boolean' || value === null) {
+        return true;
+      }
+      // Allow empty objects
+      if (type === 'object' && value !== null && !Array.isArray(value) && Object.keys(value as object).length === 0) {
+        return true;
+      }
+      return false;
     });
   });
 }
 
 /**
+ * Normalizes array of objects to have consistent keys
+ * Fills missing fields with null for TOON compatibility
+ */
+function normalizeArray(arr: any[]): any[] {
+  if (arr.length === 0) return arr;
+
+  // Collect all unique keys
+  const allKeys = new Set<string>();
+  arr.forEach(item => {
+    Object.keys(item).forEach(key => allKeys.add(key));
+  });
+
+  const keys = Array.from(allKeys).sort();
+
+  // Normalize each object to have all keys
+  return arr.map(item => {
+    const normalized: any = {};
+    keys.forEach(key => {
+      normalized[key] = item[key] !== undefined ? item[key] : null;
+    });
+    return normalized;
+  });
+}
+
+/**
  * Formats tool response data for optimal token efficiency
- * 
+ *
  * @param data - Response data to format
  * @param options - Formatting options
  * @returns Formatted string (TOON or JSON)
@@ -121,7 +167,24 @@ export function formatResponse(data: any, options: Partial<FormatOptions> = {}):
   try {
     // Determine if TOON encoding would be beneficial
     if (shouldUseTOON(data, opts)) {
-      const toonOutput = encodeTOON(data, {
+      // Normalize data for TOON encoding
+      let normalizedData = data;
+
+      // If data is an array, normalize it
+      if (Array.isArray(data)) {
+        normalizedData = normalizeArray(data);
+      }
+      // If data is an object with array properties, normalize those arrays
+      else if (typeof data === 'object' && data !== null) {
+        normalizedData = { ...data };
+        Object.keys(normalizedData).forEach(key => {
+          if (Array.isArray(normalizedData[key]) && isUniformArray(normalizedData[key])) {
+            normalizedData[key] = normalizeArray(normalizedData[key]);
+          }
+        });
+      }
+
+      const toonOutput = encodeTOON(normalizedData, {
         delimiter: opts.delimiter,
         keyFolding: opts.keyFolding
       });
