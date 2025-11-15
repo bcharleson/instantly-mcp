@@ -10,6 +10,7 @@
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { makeInstantlyRequest } from '../api/client.js';
 import { ENDPOINTS } from '../api/endpoints.js';
+import { createMCPResponse } from '../utils/response-formatter.js';
 
 /**
  * Handle all lead-related tool executions
@@ -167,14 +168,7 @@ async function handleListLeads(args: any, apiKey: string) {
       response.client_side_filters_applied = filtersApplied;
     }
 
-    return {
-      content: [
-        {
-          type: 'text',
-          text: JSON.stringify(response, null, 2),
-        },
-      ],
-    };
+    return createMCPResponse(response);
   } catch (error: any) {
     const elapsed = Date.now() - startTime;
     console.error(`[Instantly MCP] ❌ Request failed after ${elapsed}ms: ${error.message}`);
@@ -196,14 +190,7 @@ async function handleGetLead(args: any, apiKey: string) {
 
   const result = await makeInstantlyRequest(`/leads/${args.lead_id}`, {}, apiKey);
 
-  return {
-    content: [
-      {
-        type: 'text',
-        text: JSON.stringify(result, null, 2),
-      },
-    ],
-  };
+  return createMCPResponse(result);
 }
 
 /**
@@ -503,21 +490,14 @@ async function handleListLeadLists(args: any, apiKey: string) {
   const items = listsResult.items || listsResult;
   const nextStartingAfter = listsResult.next_starting_after;
 
-  return {
-    content: [
-      {
-        type: 'text',
-        text: JSON.stringify({
-          success: true,
-          lead_lists: items,
-          next_starting_after: nextStartingAfter,
-          total_returned: Array.isArray(items) ? items.length : 0,
-          has_more: !!nextStartingAfter,
-          message: 'Lead lists retrieved successfully'
-        }, null, 2)
-      }
-    ]
-  };
+  return createMCPResponse({
+    success: true,
+    lead_lists: items,
+    next_starting_after: nextStartingAfter,
+    total_returned: Array.isArray(items) ? items.length : 0,
+    has_more: !!nextStartingAfter,
+    message: 'Lead lists retrieved successfully'
+  });
 }
 
 /**

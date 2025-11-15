@@ -213,32 +213,25 @@ export async function executeToolDirectly(name: string, args: any, apiKey?: stri
         if (args?.tag_ids) filtersApplied.tag_ids = args.tag_ids;
 
         // Return single page with clear pagination metadata
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify({
-                data: campaignsWithReadableStatus,
-                pagination: {
-                  returned_count: campaignsWithReadableStatus.length,
-                  has_more: hasMore,
-                  next_starting_after: nextCursor,
-                  limit: queryParams.limit,
-                  current_page_note: hasMore
-                    ? `Retrieved ${campaignsWithReadableStatus.length} campaigns. More results available. To get next page, call list_campaigns again with starting_after='${nextCursor}'`
-                    : `Retrieved all available campaigns (${campaignsWithReadableStatus.length} items).`
-                },
-                filters_applied: Object.keys(filtersApplied).length > 0 ? filtersApplied : undefined,
-                metadata: {
-                  request_time_ms: elapsed,
-                  success: true,
-                  status_mapping_note: 'All campaigns include status_label (human-readable) and status_code (numeric) fields'
-                },
-                success: true
-              }, null, 2)
-            }
-          ]
-        };
+        return createMCPResponse({
+          data: campaignsWithReadableStatus,
+          pagination: {
+            returned_count: campaignsWithReadableStatus.length,
+            has_more: hasMore,
+            next_starting_after: nextCursor,
+            limit: queryParams.limit,
+            current_page_note: hasMore
+              ? `Retrieved ${campaignsWithReadableStatus.length} campaigns. More results available. To get next page, call list_campaigns again with starting_after='${nextCursor}'`
+              : `Retrieved all available campaigns (${campaignsWithReadableStatus.length} items).`
+          },
+          filters_applied: Object.keys(filtersApplied).length > 0 ? filtersApplied : undefined,
+          metadata: {
+            request_time_ms: elapsed,
+            success: true,
+            status_mapping_note: 'All campaigns include status_label (human-readable) and status_code (numeric) fields'
+          },
+          success: true
+        });
       } catch (error: any) {
         console.error('[Instantly MCP] ❌ Error in list_campaigns:', error.message);
         throw error;
@@ -252,14 +245,7 @@ export async function executeToolDirectly(name: string, args: any, apiKey?: stri
 
       const result = await makeInstantlyRequest(`/campaigns/${args.campaign_id}`, {}, apiKey);
 
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(result, null, 2),
-          },
-        ],
-      };
+      return createMCPResponse(result);
     }
 
     case 'get_campaign_analytics': {
@@ -314,14 +300,7 @@ export async function executeToolDirectly(name: string, args: any, apiKey?: stri
           }
         } : result;
 
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(enhancedResult, null, 2),
-            },
-          ],
-        };
+        return createMCPResponse(enhancedResult);
       } catch (error: any) {
         // Enhanced error handling for campaign analytics with detailed debugging
         console.error(`[Instantly MCP] get_campaign_analytics ERROR:`, error);
@@ -368,18 +347,11 @@ export async function executeToolDirectly(name: string, args: any, apiKey?: stri
 
       const result = await makeInstantlyRequest('/campaigns/analytics/daily', { params }, apiKey);
 
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify({
-              success: true,
-              daily_analytics: result,
-              message: 'Daily campaign analytics retrieved successfully'
-            }, null, 2)
-          }
-        ]
-      };
+      return createMCPResponse({
+        success: true,
+        daily_analytics: result,
+        message: 'Daily campaign analytics retrieved successfully'
+      });
     }
 
     case 'create_campaign': {
@@ -765,14 +737,7 @@ export async function executeToolDirectly(name: string, args: any, apiKey?: stri
         body: requestBody
       }, apiKey);
 
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(result, null, 2),
-          },
-        ],
-      };
+      return createMCPResponse(result);
     }
 
     case 'verify_email': {
@@ -977,18 +942,11 @@ export async function executeToolDirectly(name: string, args: any, apiKey?: stri
         metadata.note += ' All results retrieved (no more pages available).';
       }
 
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify({
-              ...emailsResult,
-              metadata,
-              success: true
-            }, null, 2)
-          }
-        ]
-      };
+      return createMCPResponse({
+        ...emailsResult,
+        metadata,
+        success: true
+      });
     }
 
     case 'get_email': {
