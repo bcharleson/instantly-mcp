@@ -189,6 +189,16 @@ export function formatResponse(data: any, options: Partial<FormatOptions> = {}):
         keyFolding: opts.keyFolding
       });
 
+      // Check if TOON actually used tabular format (contains "{" for field headers)
+      // If it used YAML-style list format (starts with "- "), it's likely worse than JSON
+      const usedTabularFormat = toonOutput.includes('{') && toonOutput.includes('}:');
+
+      if (!usedTabularFormat) {
+        // TOON chose YAML-style format - fall back to JSON for better token efficiency
+        console.error('[Response Formatter] TOON used YAML format instead of tabular, falling back to JSON');
+        return JSON.stringify(data, null, 2);
+      }
+
       // Add format indicator for LLM
       return `[TOON Format - Tab-delimited]\n${toonOutput}`;
     }
