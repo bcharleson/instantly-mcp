@@ -123,8 +123,7 @@ export const campaignTools = [
           description: 'Optional: Custom email bodies for each step (array of strings). Must match sequence_steps count. Use \\n for line breaks. If not provided, follow-ups use auto-generated content. Example: ["Hi {{firstName}},...", "Following up...", "Last attempt..."]'
         }
       },
-      required: ['name', 'subject', 'body'],
-      additionalProperties: true
+      required: ['name', 'subject', 'body']
     }
   },
 
