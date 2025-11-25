@@ -413,8 +413,9 @@ export class StreamingHttpTransport {
     });
 
     // Main MCP endpoint with header-based authentication
-    // ALSO accepts API key in custom header for Claude Desktop compatibility
-    this.app.all('/mcp', async (req, res) => {
+    // Uses POST only - MCP protocol uses JSON-RPC over POST
+    // GET requests handled separately for discovery
+    this.app.post('/mcp', async (req, res) => {
       // VERBOSE LOGGING FOR CLAUDE DESKTOP/WEB DEBUGGING
       console.error('[HTTP] ========== INCOMING MCP REQUEST (HEADER AUTH) ==========');
       console.error('[HTTP] 🔍 FULL REQUEST HEADERS:', JSON.stringify(req.headers, null, 2));
@@ -443,7 +444,8 @@ export class StreamingHttpTransport {
     });
 
     // URL-based authentication endpoint: /mcp/{API_KEY}
-    this.app.all('/mcp/:apiKey', async (req, res) => {
+    // Uses POST only - MCP protocol uses JSON-RPC over POST
+    this.app.post('/mcp/:apiKey', async (req, res) => {
       // Extract API key from URL path
       let apiKey = req.params.apiKey;
 
