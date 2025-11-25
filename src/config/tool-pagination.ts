@@ -29,12 +29,15 @@ export interface ToolPaginationConfig {
 /**
  * Default pagination configuration
  * 
- * Returns 10 tools per page by default for optimal context window usage.
- * Clients that don't support pagination will still work but get all tools.
+ * DISABLED BY DEFAULT: Most MCP clients (Cursor, Claude Desktop) don't support
+ * tool pagination yet. Enable via TOOL_PAGINATION_ENABLED=true when clients
+ * support the MCP 2025-06-18 pagination spec.
+ * 
+ * When enabled, returns 10 tools per page for optimal context window usage.
  */
 export const DEFAULT_TOOL_PAGINATION: ToolPaginationConfig = {
   pageSize: 10,
-  enabled: true
+  enabled: false  // Disabled until clients support pagination
 };
 
 /**
