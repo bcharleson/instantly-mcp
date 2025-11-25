@@ -6,6 +6,7 @@
  * - Compacted descriptions
  * - Consolidated duplicate tools
  * - MCP 2025-06-18 annotations support
+ * - Category-based lazy loading via TOOL_CATEGORIES env var
  *
  * Total: 31 tools across 5 categories (reduced from 36)
  * - Account tools: 6 (consolidated from 11)
@@ -13,6 +14,12 @@
  * - Lead tools: 11
  * - Email tools: 5
  * - Analytics tools: 3
+ * 
+ * LAZY LOADING:
+ * Set TOOL_CATEGORIES env var to load only specific categories.
+ * Example: TOOL_CATEGORIES="accounts,campaigns" loads only 12 tools
+ * Valid categories: accounts, campaigns, leads, email, analytics
+ * Default: all categories loaded
  */
 
 import { accountTools } from './account-tools.js';
@@ -21,33 +28,78 @@ import { leadTools } from './lead-tools.js';
 import { emailTools } from './email-tools.js';
 import { analyticsTools } from './analytics-tools.js';
 
+// Category mapping for lazy loading
+const CATEGORY_MAP: Record<string, any[]> = {
+  accounts: accountTools,
+  campaigns: campaignTools,
+  leads: leadTools,
+  email: emailTools,
+  analytics: analyticsTools,
+};
+
+/**
+ * Build tools array based on TOOL_CATEGORIES env var
+ * If not set, all categories are loaded (full 31 tools)
+ */
+function buildToolsDefinition(): any[] {
+  const categoriesEnv = process.env.TOOL_CATEGORIES;
+  
+  if (!categoriesEnv) {
+    // Default: load all tools
+    return [
+      ...accountTools,
+      ...campaignTools,
+      ...leadTools,
+      ...emailTools,
+      ...analyticsTools,
+    ];
+  }
+  
+  // Parse comma-separated categories
+  const requestedCategories = categoriesEnv
+    .toLowerCase()
+    .split(',')
+    .map(c => c.trim())
+    .filter(c => c.length > 0);
+  
+  const tools: any[] = [];
+  const loadedCategories: string[] = [];
+  
+  for (const category of requestedCategories) {
+    if (CATEGORY_MAP[category]) {
+      tools.push(...CATEGORY_MAP[category]);
+      loadedCategories.push(category);
+    } else {
+      console.error(`[Instantly MCP] ⚠️ Unknown tool category: "${category}". Valid: ${Object.keys(CATEGORY_MAP).join(', ')}`);
+    }
+  }
+  
+  if (tools.length > 0) {
+    console.error(`[Instantly MCP] 🔧 Lazy loading enabled: ${tools.length} tools from categories: ${loadedCategories.join(', ')}`);
+  } else {
+    console.error(`[Instantly MCP] ⚠️ No valid categories in TOOL_CATEGORIES. Loading all tools.`);
+    return [
+      ...accountTools,
+      ...campaignTools,
+      ...leadTools,
+      ...emailTools,
+      ...analyticsTools,
+    ];
+  }
+  
+  return tools;
+}
+
 /**
  * Complete tool definitions array
  * 
  * This array is used by the MCP server to register all available tools.
- * Tools are organized by category for better maintainability.
+ * Tools are filtered by TOOL_CATEGORIES env var if set.
  */
-export const TOOLS_DEFINITION = [
-  // Account Management Tools (6 tools - consolidated)
-  ...accountTools,
-
-  // Campaign Management Tools (6 tools)
-  ...campaignTools,
-
-  // Lead Management Tools (11 tools)
-  ...leadTools,
-
-  // Email Management Tools (5 tools)
-  ...emailTools,
-
-  // Analytics & Reporting Tools (3 tools)
-  ...analyticsTools,
-];
+export const TOOLS_DEFINITION = buildToolsDefinition();
 
 /**
- * Tool count by category
- * 
- * Useful for validation and debugging
+ * Tool count by category (reflects loaded tools, not all available)
  */
 export const TOOL_COUNTS = {
   account: accountTools.length,
@@ -55,8 +107,23 @@ export const TOOL_COUNTS = {
   lead: leadTools.length,
   email: emailTools.length,
   analytics: analyticsTools.length,
-  total: TOOLS_DEFINITION.length,
+  loaded: TOOLS_DEFINITION.length,
+  maxAvailable: 31,  // Total when all categories loaded
 };
+
+/**
+ * Get available categories for lazy loading
+ */
+export function getAvailableCategories(): string[] {
+  return Object.keys(CATEGORY_MAP);
+}
+
+/**
+ * Check if lazy loading is active
+ */
+export function isLazyLoadingEnabled(): boolean {
+  return !!process.env.TOOL_CATEGORIES;
+}
 
 /**
  * Validate tool definitions
@@ -88,9 +155,9 @@ export function validateToolDefinitions(): { valid: boolean; errors: string[] } 
     }
   }
 
-  // Validate expected count (31 after consolidation)
-  if (TOOLS_DEFINITION.length !== 31) {
-    errors.push(`Expected 31 tools, found ${TOOLS_DEFINITION.length}`);
+  // Dynamic validation: check loaded count is reasonable
+  if (TOOLS_DEFINITION.length === 0) {
+    errors.push('No tools loaded - check TOOL_CATEGORIES env var');
   }
 
   return {
