@@ -590,81 +590,36 @@ export class StreamingHttpTransport {
       });
     });
 
-    // GET endpoint for MCP clients (supports SSE for Claude.ai proxy)
-    this.app.get('/mcp/:apiKey?', async (req, res) => {
+    // GET endpoint for MCP clients
+    // IMPORTANT: Returns immediately - no blocking on SSE setup
+    // Cursor and most MCP clients use POST for actual communication
+    this.app.get('/mcp/:apiKey?', (req, res) => {
       const apiKey = req.params.apiKey;
       const acceptHeader = req.headers.accept || '';
-      const protocolVersion = req.headers['mcp-protocol-version'] as string;
 
       console.error(`[HTTP] 🔍 GET /mcp request - API Key: ${apiKey ? '✅ Present' : '❌ Missing'}`);
       console.error(`[HTTP] 📋 Accept: ${acceptHeader}`);
-      console.error(`[HTTP] 🔖 Protocol Version: ${protocolVersion || 'Not provided'}`);
 
-      // Validate MCP-Protocol-Version header (backward compatible)
-      // Per MCP spec: if no header provided, assume 2025-03-26 for backward compatibility
-      if (protocolVersion && !['2025-06-18', '2025-03-26', '2024-11-05'].includes(protocolVersion)) {
-        console.error(`[HTTP] ❌ Unsupported protocol version: ${protocolVersion}`);
-        return res.status(400).json({
-          error: 'Bad Request',
-          message: `Unsupported MCP protocol version: ${protocolVersion}. Supported: 2025-06-18, 2025-03-26 (recommended), 2024-11-05`
-        });
-      }
-
-      if (acceptHeader.includes('text/event-stream')) {
-        // Client wants SSE stream - support for Claude.ai proxy
-        console.error('[HTTP] 📡 SSE connection requested - starting SSE transport');
-        console.error(`[HTTP] 📡 API Key: ${apiKey ? '✅ Present' : '❌ Missing'}`);
-
-        try {
-          const transport = new SSEServerTransport('/messages', res);
-          this.sseTransports.set(transport.sessionId, transport);
-
-          // CRITICAL FIX: Store API key with SSE session so tool calls can access it
-          this.sseSessionMetadata.set(transport.sessionId, { apiKey });
-          console.error(`[HTTP] 📡 SSE session metadata stored - API Key: ${apiKey ? '✅ Present' : '❌ Missing'}`);
-
-          console.error(`[HTTP] 📡 SSE transport created with session ID: ${transport.sessionId}`);
-          console.error(`[HTTP] 📡 Active SSE sessions: ${this.sseTransports.size}`);
-
-          res.on('close', () => {
-            console.error(`[HTTP] 📡 SSE connection closed for session ${transport.sessionId}`);
-            this.sseTransports.delete(transport.sessionId);
-            this.sseSessionMetadata.delete(transport.sessionId); // Clean up metadata
-            console.error(`[HTTP] 📡 Remaining SSE sessions: ${this.sseTransports.size}`);
-          });
-
-          await this.server.connect(transport);
-          console.error(`[HTTP] ✅ SSE transport connected successfully - session ID: ${transport.sessionId}`);
-        } catch (error) {
-          console.error('[HTTP] ❌ Failed to establish SSE connection:', error);
-          console.error('[HTTP] ❌ Error stack:', error instanceof Error ? error.stack : 'No stack trace');
-
-          if (!res.headersSent) {
-            res.status(500).json({
-              error: 'Internal Server Error',
-              message: `Failed to establish SSE connection: ${error instanceof Error ? error.message : String(error)}`
-            });
-          }
-        }
-        return;
-      }
-
-      // Return server info for GET requests
+      // For ALL GET requests, return server info immediately
+      // This ensures Cursor and other clients don't hang on discovery
+      // Actual MCP communication happens via POST
       res.json({
         server: 'instantly-mcp',
         version: '1.2.0',
         transport: 'streamable-http',
         protocol: '2025-06-18',
+        tools: TOOLS_DEFINITION.length,
         endpoints: {
           'mcp_post': apiKey ? `/mcp/${apiKey}` : '/mcp',
-          'messages_post': '/messages',
           'health': '/health',
           'info': '/info'
         },
         auth: {
           required: true,
-          methods: ['path_parameter', 'header']
-        }
+          methods: ['path_parameter', 'header'],
+          note: 'Use POST to /mcp/{API_KEY} for MCP communication'
+        },
+        status: 'ready'
       });
     });
 
