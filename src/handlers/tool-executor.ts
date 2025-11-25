@@ -1040,14 +1040,16 @@ export async function executeToolDirectly(name: string, args: any, apiKey?: stri
       };
     }
 
-    case 'get_account_details': {
-      console.error('[Instantly MCP] 👤 Executing get_account_details...');
+    // Consolidated: get_account (replaces get_account_details and get_account_info)
+    case 'get_account':
+    case 'get_account_details':  // Backward compatibility
+    case 'get_account_info': {   // Backward compatibility
+      console.error(`[Instantly MCP] 👤 Executing get_account (called as: ${name})...`);
 
       if (!args.email) {
-        throw new McpError(ErrorCode.InvalidParams, 'Email parameter is required for get_account_details');
+        throw new McpError(ErrorCode.InvalidParams, 'Email parameter is required');
       }
 
-      // This is essentially the same as get_account_info - might be a duplicate
       const accountResult = await makeInstantlyRequest(`/accounts/${args.email}`, {}, apiKey);
 
       return {
@@ -1056,23 +1058,52 @@ export async function executeToolDirectly(name: string, args: any, apiKey?: stri
             type: 'text',
             text: JSON.stringify({
               success: true,
-              account_details: accountResult,
-              message: 'Account details retrieved successfully',
-              note: 'This tool provides the same information as get_account_info'
+              account: accountResult,
+              message: 'Account details retrieved successfully'
             }, null, 2)
           }
         ]
       };
     }
 
-    case 'get_account_info': {
-      console.error('[Instantly MCP] 👤 Executing get_account_info...');
+    // Consolidated: manage_account_state (replaces pause/resume/warmup/vitals tools)
+    case 'manage_account_state': {
+      console.error('[Instantly MCP] 🔧 Executing manage_account_state...');
 
       if (!args.email) {
-        throw new McpError(ErrorCode.InvalidParams, 'Email parameter is required for get_account_info');
+        throw new McpError(ErrorCode.InvalidParams, 'Email is required');
+      }
+      if (!args.action) {
+        throw new McpError(ErrorCode.InvalidParams, 'Action is required (pause, resume, enable_warmup, disable_warmup, test_vitals)');
       }
 
-      const accountInfoResult = await makeInstantlyRequest(`/accounts/${args.email}`, {}, apiKey);
+      let result: any;
+      let message: string;
+
+      switch (args.action) {
+        case 'pause':
+          result = await makeInstantlyRequest(`/accounts/${args.email}/pause`, { method: 'POST' }, apiKey);
+          message = `Account ${args.email} paused successfully`;
+          break;
+        case 'resume':
+          result = await makeInstantlyRequest(`/accounts/${args.email}/resume`, { method: 'POST' }, apiKey);
+          message = `Account ${args.email} resumed successfully`;
+          break;
+        case 'enable_warmup':
+          result = await makeInstantlyRequest('/accounts/warmup/enable', { method: 'POST', body: { emails: [args.email] } }, apiKey);
+          message = `Warmup enabled for ${args.email}`;
+          break;
+        case 'disable_warmup':
+          result = await makeInstantlyRequest('/accounts/warmup/disable', { method: 'POST', body: { emails: [args.email] } }, apiKey);
+          message = `Warmup disabled for ${args.email}`;
+          break;
+        case 'test_vitals':
+          result = await makeInstantlyRequest('/accounts/test/vitals', { method: 'POST', body: { accounts: [args.email] } }, apiKey);
+          message = `Account vitals tested for ${args.email}`;
+          break;
+        default:
+          throw new McpError(ErrorCode.InvalidParams, `Unknown action: ${args.action}. Valid: pause, resume, enable_warmup, disable_warmup, test_vitals`);
+      }
 
       return {
         content: [
@@ -1080,60 +1111,24 @@ export async function executeToolDirectly(name: string, args: any, apiKey?: stri
             type: 'text',
             text: JSON.stringify({
               success: true,
-              account: accountInfoResult,
-              message: 'Account information retrieved successfully'
+              action: args.action,
+              result,
+              message
             }, null, 2)
           }
         ]
       };
     }
 
+    // Backward compatibility: route old tool names to manage_account_state
     case 'pause_account': {
-      console.error('[Instantly MCP] ⏸️ Executing pause_account...');
-
-      if (!args.email) {
-        throw new McpError(ErrorCode.InvalidParams, 'Email is required for pause_account');
-      }
-
-      console.error(`[Instantly MCP] 🔧 Using endpoint: /accounts/${args.email}/pause`);
-      const pauseAccountResult = await makeInstantlyRequest(`/accounts/${args.email}/pause`, { method: 'POST' }, apiKey);
-
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify({
-              success: true,
-              account: pauseAccountResult,
-              message: `Account ${args.email} paused successfully`
-            }, null, 2)
-          }
-        ]
-      };
+      console.error('[Instantly MCP] ⏸️ pause_account (legacy) -> manage_account_state');
+      return executeToolDirectly('manage_account_state', { email: args.email, action: 'pause' }, apiKey);
     }
 
     case 'resume_account': {
-      console.error('[Instantly MCP] ▶️ Executing resume_account...');
-
-      if (!args.email) {
-        throw new McpError(ErrorCode.InvalidParams, 'Email is required for resume_account');
-      }
-
-      console.error(`[Instantly MCP] 🔧 Using endpoint: /accounts/${args.email}/resume`);
-      const resumeAccountResult = await makeInstantlyRequest(`/accounts/${args.email}/resume`, { method: 'POST' }, apiKey);
-
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify({
-              success: true,
-              account: resumeAccountResult,
-              message: `Account ${args.email} resumed successfully`
-            }, null, 2)
-          }
-        ]
-      };
+      console.error('[Instantly MCP] ▶️ resume_account (legacy) -> manage_account_state');
+      return executeToolDirectly('manage_account_state', { email: args.email, action: 'resume' }, apiKey);
     }
 
     case 'create_account': {
@@ -1213,86 +1208,20 @@ export async function executeToolDirectly(name: string, args: any, apiKey?: stri
       };
     }
 
+    // Backward compatibility: route legacy warmup/vitals tools to manage_account_state
     case 'enable_warmup': {
-      console.error('[Instantly MCP] 🔥 Executing enable_warmup...');
-
-      if (!args.email) {
-        throw new McpError(ErrorCode.InvalidParams, 'Email is required for enable_warmup');
-      }
-
-      console.error(`[Instantly MCP] 🔧 Using endpoint: /accounts/warmup/enable`);
-      const enableWarmupResult = await makeInstantlyRequest('/accounts/warmup/enable', {
-        method: 'POST',
-        body: { emails: [args.email] }
-      }, apiKey);
-
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify({
-              success: true,
-              result: enableWarmupResult,
-              message: `Warmup enabled for account ${args.email}`
-            }, null, 2)
-          }
-        ]
-      };
+      console.error('[Instantly MCP] 🔥 enable_warmup (legacy) -> manage_account_state');
+      return executeToolDirectly('manage_account_state', { email: args.email, action: 'enable_warmup' }, apiKey);
     }
 
     case 'disable_warmup': {
-      console.error('[Instantly MCP] ❄️ Executing disable_warmup...');
-
-      if (!args.email) {
-        throw new McpError(ErrorCode.InvalidParams, 'Email is required for disable_warmup');
-      }
-
-      console.error(`[Instantly MCP] 🔧 Using endpoint: /accounts/warmup/disable`);
-      const disableWarmupResult = await makeInstantlyRequest('/accounts/warmup/disable', {
-        method: 'POST',
-        body: { emails: [args.email] }
-      }, apiKey);
-
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify({
-              success: true,
-              result: disableWarmupResult,
-              message: `Warmup disabled for account ${args.email}`
-            }, null, 2)
-          }
-        ]
-      };
+      console.error('[Instantly MCP] ❄️ disable_warmup (legacy) -> manage_account_state');
+      return executeToolDirectly('manage_account_state', { email: args.email, action: 'disable_warmup' }, apiKey);
     }
 
     case 'test_account_vitals': {
-      console.error('[Instantly MCP] 🩺 Executing test_account_vitals...');
-
-      if (!args.email) {
-        throw new McpError(ErrorCode.InvalidParams, 'Email is required for test_account_vitals');
-      }
-
-      console.error(`[Instantly MCP] 🔧 Using endpoint: /accounts/test/vitals`);
-      const testVitalsResult = await makeInstantlyRequest('/accounts/test/vitals', {
-        method: 'POST',
-        body: { accounts: [args.email] }
-      }, apiKey);
-
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify({
-              success: true,
-              vitals: testVitalsResult,
-              message: `Account vitals tested for ${args.email}`,
-              note: 'This diagnostic tool helps identify account connectivity and health issues'
-            }, null, 2)
-          }
-        ]
-      };
+      console.error('[Instantly MCP] 🩺 test_account_vitals (legacy) -> manage_account_state');
+      return executeToolDirectly('manage_account_state', { email: args.email, action: 'test_vitals' }, apiKey);
     }
 
     default:

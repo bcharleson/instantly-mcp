@@ -22,6 +22,7 @@ import {
 import { TOOLS_DEFINITION } from '../tools/index.js';
 import { executeToolDirectly } from './tool-executor.js';
 import { handleInstantlyError } from '../error-handler.js';
+import { paginateTools, getPaginationInfo, getToolPaginationConfig } from '../config/tool-pagination.js';
 
 /**
  * Load Instantly.ai icons for MCP protocol
@@ -103,12 +104,29 @@ export function registerMcpHandlers(server: Server, apiKey?: string): void {
     return initResponse;
   });
 
-  // List tools handler
-  server.setRequestHandler(ListToolsRequestSchema, async () => {
-    console.error('[Instantly MCP] 📋 Listing available tools...');
+  // List tools handler with pagination support (MCP 2025-06-18)
+  server.setRequestHandler(ListToolsRequestSchema, async (request) => {
+    const cursor = request.params?.cursor;
+    const config = getToolPaginationConfig();
+    
+    // Get pagination info for logging
+    const paginationInfo = getPaginationInfo(TOOLS_DEFINITION.length, cursor, config);
+    
+    console.error(`[Instantly MCP] 📋 Listing tools (page ${paginationInfo.currentPage}/${paginationInfo.totalPages}, ` +
+      `showing ${paginationInfo.startIndex + 1}-${paginationInfo.endIndex} of ${paginationInfo.totalTools})...`);
+    
+    // Paginate tools for context window efficiency
+    const { tools, nextCursor } = paginateTools(TOOLS_DEFINITION, cursor, config);
+    
+    if (nextCursor) {
+      console.error(`[Instantly MCP] 📄 More tools available - nextCursor provided for lazy loading`);
+    } else {
+      console.error(`[Instantly MCP] ✅ All tools returned (pagination ${config.enabled ? 'enabled' : 'disabled'})`);
+    }
 
     return {
-      tools: TOOLS_DEFINITION
+      tools,
+      ...(nextCursor && { nextCursor })
     };
   });
 

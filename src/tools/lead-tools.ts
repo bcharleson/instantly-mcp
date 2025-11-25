@@ -1,67 +1,32 @@
 /**
- * Instantly MCP Server - Lead Tools
+ * Instantly MCP Server - Lead Tools (Compacted)
  *
- * Tool definitions for lead and lead list management operations.
- * Total: 11 lead tools (includes bulk import, delete, and move)
+ * Tool definitions for lead and lead list management.
+ * Optimized for minimal context window overhead.
+ * Total: 11 lead tools
  */
 
 export const leadTools = [
   {
     name: 'list_leads',
     title: 'List Leads',
-    description: 'List leads with pagination. Filter by campaign, list, search, or status. Use exact cursor from pagination.next_starting_after.',
+    description: 'List leads with pagination. Filter by campaign, list, search, or status.',
+    annotations: { readOnlyHint: true },
     inputSchema: {
       type: 'object',
       properties: {
-        // Basic filtering parameters
-        campaign: { type: 'string', description: 'Campaign ID to filter leads (UUID format)' },
-        list_id: { type: 'string', description: 'List ID to filter leads (UUID format)' },
-        list_ids: {
-          type: 'array',
-          items: { type: 'string' },
-          description: 'Filter by multiple list IDs (optional). Example: ["list1", "list2"]'
-        },
-        status: { type: 'string', description: 'Filter by lead status (optional)' },
-
-        // Date filtering (client-side)
-        created_after: {
-          type: 'string',
-          description: 'Filter leads created after this date (YYYY-MM-DD format). Client-side filtering applied after retrieval. Example: "2025-09-01"',
-          pattern: '^\\d{4}-\\d{2}-\\d{2}$'
-        },
-        created_before: {
-          type: 'string',
-          description: 'Filter leads created before this date (YYYY-MM-DD format). Client-side filtering applied after retrieval. Example: "2025-09-30"',
-          pattern: '^\\d{4}-\\d{2}-\\d{2}$'
-        },
-
-        // Search and filtering
-        search: {
-          type: 'string',
-          description: 'Search string to search leads by First Name, Last Name, or Email. Example: "John Doe"'
-        },
-        filter: {
-          type: 'string',
-          description: 'Contact status filter. Values: FILTER_VAL_CONTACTED (replied), FILTER_VAL_NOT_CONTACTED (not contacted), FILTER_VAL_COMPLETED (completed), FILTER_VAL_UNSUBSCRIBED (unsubscribed), FILTER_VAL_ACTIVE (active), FILTER_LEAD_INTERESTED (interested), FILTER_LEAD_MEETING_BOOKED (meeting booked), FILTER_LEAD_CLOSED (closed/won)'
-        },
-        distinct_contacts: {
-          type: 'boolean',
-          description: 'Group leads by email address (true) or show all instances (false). Default: false. Use true to deduplicate by email.'
-        },
-
-        // Pagination
-        limit: {
-          type: 'number',
-          description: 'Number of items per page (1-100, default: 100)',
-          minimum: 1,
-          maximum: 100
-        },
-        starting_after: {
-          type: 'string',
-          description: 'Pagination cursor from previous response. CRITICAL: Use the EXACT value from response.pagination.next_starting_after field (NOT a lead ID or email from the data). Example: If previous response had "next_starting_after": "cursor_abc123", use starting_after="cursor_abc123". Omit for first page.'
-        }
-      },
-      additionalProperties: false
+        campaign: { type: 'string', description: 'Campaign UUID' },
+        list_id: { type: 'string', description: 'List UUID' },
+        list_ids: { type: 'array', items: { type: 'string' } },
+        status: { type: 'string' },
+        created_after: { type: 'string', description: 'YYYY-MM-DD' },
+        created_before: { type: 'string', description: 'YYYY-MM-DD' },
+        search: { type: 'string', description: 'Name or email' },
+        filter: { type: 'string', description: 'FILTER_VAL_CONTACTED, FILTER_VAL_NOT_CONTACTED, FILTER_VAL_COMPLETED, FILTER_VAL_ACTIVE, etc.' },
+        distinct_contacts: { type: 'boolean', description: 'Dedupe by email' },
+        limit: { type: 'number', description: '1-100, default: 100' },
+        starting_after: { type: 'string', description: 'Cursor from pagination.next_starting_after' }
+      }
     }
   },
 
@@ -69,299 +34,217 @@ export const leadTools = [
     name: 'get_lead',
     title: 'Get Lead',
     description: 'Get lead details by ID',
+    annotations: { readOnlyHint: true },
     inputSchema: {
       type: 'object',
       properties: {
-        lead_id: { type: 'string', description: 'Lead ID (UUID)' }
+        lead_id: { type: 'string', description: 'Lead UUID' }
       },
-      required: ['lead_id'],
-      additionalProperties: false
+      required: ['lead_id']
     }
   },
 
   {
     name: 'create_lead',
     title: 'Create Lead',
-    description: 'Create lead with custom variables. ⚠️ When using campaign_id, match custom_variables to existing campaign fields. Use skip_if_in_campaign to prevent duplicates.',
+    description: 'Create lead with custom variables. Use skip_if_in_campaign to prevent duplicates.',
+    annotations: { destructiveHint: false },
     inputSchema: {
       type: 'object',
       properties: {
-        campaign: { type: 'string', description: 'Campaign ID (UUID)' },
-        email: { type: 'string', description: 'Email (required, user@domain.com)' },
-        first_name: { type: 'string', description: 'First name' },
-        last_name: { type: 'string', description: 'Last name' },
-        company_name: { type: 'string', description: 'Company name' },
-        phone: { type: 'string', description: 'Phone' },
-        website: { type: 'string', description: 'Website URL' },
-        personalization: { type: 'string', description: 'Custom message' },
-        lt_interest_status: { type: 'number', description: 'Interest status (-3 to 4)', minimum: -3, maximum: 4 },
-        pl_value_lead: { type: 'string', description: 'Lead value (e.g., "$5000")' },
-        list_id: { type: 'string', description: 'List ID (UUID)' },
-        assigned_to: { type: 'string', description: 'User ID to assign' },
-        skip_if_in_workspace: { type: 'boolean', description: 'Skip if email exists in workspace', default: false },
-        skip_if_in_campaign: { type: 'boolean', description: 'Skip if email exists in campaign (recommended)', default: false },
-        skip_if_in_list: { type: 'boolean', description: 'Skip if email exists in list', default: false },
-        blocklist_id: { type: 'string', description: 'Blocklist ID to check' },
-        verify_leads_for_lead_finder: { type: 'boolean', description: 'Enable lead finder verification', default: false },
-        verify_leads_on_import: { type: 'boolean', description: 'Verify email before import (adds 2-5s)', default: false },
-        custom_variables: {
-          type: 'object',
-          description: '⚠️ Ask user about campaign variables first! Match exact field names. Examples: {"headcount": "50-100", "revenue": "$1M-$5M"}'
-        }
-      },
-      required: [],
-      additionalProperties: false
+        campaign: { type: 'string', description: 'Campaign UUID' },
+        email: { type: 'string', description: 'Required' },
+        first_name: { type: 'string' },
+        last_name: { type: 'string' },
+        company_name: { type: 'string' },
+        phone: { type: 'string' },
+        website: { type: 'string' },
+        personalization: { type: 'string' },
+        lt_interest_status: { type: 'number', description: '-3 to 4' },
+        pl_value_lead: { type: 'string' },
+        list_id: { type: 'string' },
+        assigned_to: { type: 'string' },
+        skip_if_in_workspace: { type: 'boolean' },
+        skip_if_in_campaign: { type: 'boolean', description: 'Recommended' },
+        skip_if_in_list: { type: 'boolean' },
+        blocklist_id: { type: 'string' },
+        verify_leads_on_import: { type: 'boolean' },
+        custom_variables: { type: 'object', description: 'Match campaign field names' }
+      }
     }
   },
 
   {
     name: 'update_lead',
     title: 'Update Lead',
-    description: 'Update lead (partial updates). ⚠️ custom_variables replaces entire object - include all existing fields. Get current data with get_lead first.',
+    description: 'Update lead (partial). ⚠️ custom_variables replaces entire object.',
+    annotations: { destructiveHint: false },
     inputSchema: {
       type: 'object',
       properties: {
-        lead_id: { type: 'string', description: 'Lead ID (UUID, required)' },
-        personalization: { type: 'string', description: 'Custom message' },
-        website: { type: 'string', description: 'Website URL' },
-        last_name: { type: 'string', description: 'Last name' },
-        first_name: { type: 'string', description: 'First name' },
-        company_name: { type: 'string', description: 'Company name' },
-        phone: { type: 'string', description: 'Phone' },
-        lt_interest_status: { type: 'number', description: 'Interest status (-3 to 4)', minimum: -3, maximum: 4 },
-        pl_value_lead: { type: 'string', description: 'Lead value' },
-        assigned_to: { type: 'string', description: 'User UUID to assign' },
-        custom_variables: {
-          type: 'object',
-          description: '⚠️ REPLACES entire object! Include ALL existing + new fields. Get current with get_lead first.'
-        }
+        lead_id: { type: 'string', description: 'Lead UUID' },
+        personalization: { type: 'string' },
+        website: { type: 'string' },
+        last_name: { type: 'string' },
+        first_name: { type: 'string' },
+        company_name: { type: 'string' },
+        phone: { type: 'string' },
+        lt_interest_status: { type: 'number' },
+        pl_value_lead: { type: 'string' },
+        assigned_to: { type: 'string' },
+        custom_variables: { type: 'object', description: 'Replaces all - include existing!' }
       },
-      required: ['lead_id'],
-      additionalProperties: false
+      required: ['lead_id']
     }
   },
 
   {
     name: 'list_lead_lists',
     title: 'List Lead Lists',
-    description: 'List lead lists with pagination. Filter by search or enrichment status. Use exact cursor from pagination field.',
+    description: 'List lead lists with pagination and search',
+    annotations: { readOnlyHint: true },
     inputSchema: {
       type: 'object',
       properties: {
-        limit: { type: 'number', description: 'Number of items to return (1-100, default: 100)', minimum: 1, maximum: 100 },
-        starting_after: { type: 'string', description: 'Pagination cursor (timestamp) from previous response. CRITICAL: Use the EXACT value from response pagination field (NOT constructed manually). The API returns the correct cursor. Omit for first page.' },
-        has_enrichment_task: { type: 'boolean', description: 'Filter by enrichment task status - true returns only lists with enrichment enabled, false returns only lists without enrichment' },
-        search: { type: 'string', description: 'Search query to filter lead lists by name (e.g., "Summer 2025 List")' }
-      },
-      additionalProperties: false
+        limit: { type: 'number', description: '1-100, default: 100' },
+        starting_after: { type: 'string', description: 'Cursor from pagination' },
+        has_enrichment_task: { type: 'boolean' },
+        search: { type: 'string', description: 'Search by name' }
+      }
     }
   },
 
   {
     name: 'create_lead_list',
     title: 'Create Lead List',
-    description: 'Create lead list to organize leads by source/segment. Set has_enrichment_task=true to auto-enrich data.',
+    description: 'Create list. Set has_enrichment_task=true for auto-enrich.',
+    annotations: { destructiveHint: false },
     inputSchema: {
       type: 'object',
       properties: {
-        name: { type: 'string', description: 'List name (e.g., "LinkedIn Prospects Q1 2025")' },
-        has_enrichment_task: { type: 'boolean', description: 'Auto-enrich lead data (default: false)', default: false },
-        owned_by: { type: 'string', description: 'Owner user ID (UUID)' }
+        name: { type: 'string', description: 'List name' },
+        has_enrichment_task: { type: 'boolean' },
+        owned_by: { type: 'string', description: 'Owner UUID' }
       },
-      required: ['name'],
-      additionalProperties: false
+      required: ['name']
     }
   },
 
   {
     name: 'update_lead_list',
     title: 'Update Lead List',
-    description: 'Update lead list (name, enrichment, owner). Partial updates supported.',
+    description: 'Update list name, enrichment, or owner',
+    annotations: { destructiveHint: false },
     inputSchema: {
       type: 'object',
       properties: {
-        list_id: { type: 'string', description: 'Lead list ID (UUID)' },
-        name: { type: 'string', description: 'New name' },
-        has_enrichment_task: { type: 'boolean', description: 'Enable/disable enrichment' },
-        owned_by: { type: 'string', description: 'New owner user ID' }
+        list_id: { type: 'string' },
+        name: { type: 'string' },
+        has_enrichment_task: { type: 'boolean' },
+        owned_by: { type: 'string' }
       },
-      required: ['list_id'],
-      additionalProperties: false
+      required: ['list_id']
     }
   },
 
   {
     name: 'get_verification_stats_for_lead_list',
-    title: 'Get Verification Stats',
-    description: 'Get email verification statistics for lead list (verified, invalid, risky, catch-all, pending)',
+    title: 'Verification Stats',
+    description: 'Get email verification stats for list',
+    annotations: { readOnlyHint: true },
     inputSchema: {
       type: 'object',
       properties: {
-        list_id: { type: 'string', description: 'Lead list ID (UUID)' }
+        list_id: { type: 'string', description: 'List UUID' }
       },
-      required: ['list_id'],
-      additionalProperties: false
+      required: ['list_id']
     }
   },
 
   {
     name: 'add_leads_to_campaign_or_list_bulk',
     title: 'Bulk Add Leads',
-    description: 'Bulk add up to 1,000 leads to campaign OR list. 10-100x faster than individual create_lead. Use skip_if_in_campaign to prevent duplicates.',
+    description: 'Add up to 1,000 leads. 10-100x faster than create_lead.',
+    annotations: { destructiveHint: false },
     inputSchema: {
       type: 'object',
       properties: {
         leads: {
           type: 'array',
-          description: 'Lead objects (1-1000). Each: email, first_name, last_name, company_name, phone, website, personalization, lt_interest_status, pl_value_lead, assigned_to, custom_variables.',
           items: {
             type: 'object',
             properties: {
-              email: { type: 'string', description: 'Email (required for campaigns)' },
-              first_name: { type: 'string', description: 'First name' },
-              last_name: { type: 'string', description: 'Last name' },
-              company_name: { type: 'string', description: 'Company' },
-              phone: { type: 'string', description: 'Phone' },
-              website: { type: 'string', description: 'Website' },
-              personalization: { type: 'string', description: 'Custom message' },
-              lt_interest_status: { type: 'number', description: 'Interest status (-3 to 4)', minimum: -3, maximum: 4 },
-              pl_value_lead: { type: 'string', description: 'Lead value' },
-              assigned_to: { type: 'string', description: 'User UUID' },
-              custom_variables: {
-                type: 'object',
-                description: '⚠️ Align with campaign variables!'
-              }
-            },
-            additionalProperties: false
+              email: { type: 'string' },
+              first_name: { type: 'string' },
+              last_name: { type: 'string' },
+              company_name: { type: 'string' },
+              phone: { type: 'string' },
+              website: { type: 'string' },
+              personalization: { type: 'string' },
+              lt_interest_status: { type: 'number' },
+              pl_value_lead: { type: 'string' },
+              assigned_to: { type: 'string' },
+              custom_variables: { type: 'object' }
+            }
           },
-          minItems: 1,
-          maxItems: 1000
+          description: '1-1000 leads'
         },
-        campaign_id: { type: 'string', description: 'Campaign UUID (use this OR list_id)' },
-        list_id: { type: 'string', description: 'List UUID (use this OR campaign_id)' },
-        blocklist_id: { type: 'string', description: 'Blocklist UUID' },
-        assigned_to: { type: 'string', description: 'User UUID for all leads' },
-        verify_leads_on_import: { type: 'boolean', description: 'Verify emails (recommended)', default: false },
-        skip_if_in_workspace: { type: 'boolean', description: 'Skip if exists in workspace', default: false },
-        skip_if_in_campaign: { type: 'boolean', description: 'Skip if exists in campaign (recommended)', default: false },
-        skip_if_in_list: { type: 'boolean', description: 'Skip if exists in list', default: false }
+        campaign_id: { type: 'string', description: 'Use OR list_id' },
+        list_id: { type: 'string', description: 'Use OR campaign_id' },
+        blocklist_id: { type: 'string' },
+        assigned_to: { type: 'string' },
+        verify_leads_on_import: { type: 'boolean' },
+        skip_if_in_workspace: { type: 'boolean' },
+        skip_if_in_campaign: { type: 'boolean', description: 'Recommended' },
+        skip_if_in_list: { type: 'boolean' }
       },
-      required: ['leads'],
-      additionalProperties: false
+      required: ['leads']
     }
   },
 
   {
     name: 'delete_lead',
     title: 'Delete Lead',
-    description: '🗑️ DESTRUCTIVE: Permanently delete lead. ⚠️ CANNOT BE UNDONE! Removes from all campaigns/lists. Always confirm with user first.',
+    description: '🗑️ PERMANENTLY delete. CANNOT UNDO!',
+    annotations: { destructiveHint: true, confirmationRequiredHint: true },
     inputSchema: {
       type: 'object',
       properties: {
-        lead_id: {
-          type: 'string',
-          description: '⚠️ Lead ID to DELETE PERMANENTLY (cannot recover!)'
-        }
+        lead_id: { type: 'string', description: 'Lead UUID to DELETE' }
       },
-      required: ['lead_id'],
-      additionalProperties: false
+      required: ['lead_id']
     }
   },
 
   {
     name: 'move_leads_to_campaign_or_list',
     title: 'Move/Copy Leads',
-    description: 'Move/copy leads between campaigns/lists (background job). Requires to_campaign_id OR to_list_id. Set copy_leads=true to copy instead of move.',
+    description: 'Move or copy leads between campaigns/lists (background job)',
+    annotations: { destructiveHint: false },
     inputSchema: {
       type: 'object',
       properties: {
-        to_campaign_id: {
-          type: 'string',
-          description: 'Destination campaign ID (use this OR to_list_id)'
-        },
-        to_list_id: {
-          type: 'string',
-          description: 'Destination list ID (use this OR to_campaign_id)'
-        },
-        ids: {
-          type: 'array',
-          items: { type: 'string' },
-          description: 'Lead IDs to move'
-        },
-        search: {
-          type: 'string',
-          description: 'Search string (name/email)'
-        },
-        filter: {
-          type: 'string',
-          description: 'Contact status: FILTER_VAL_CONTACTED, FILTER_VAL_NOT_CONTACTED, FILTER_VAL_COMPLETED, FILTER_VAL_UNSUBSCRIBED, FILTER_VAL_ACTIVE, FILTER_LEAD_INTERESTED, FILTER_LEAD_MEETING_BOOKED, FILTER_LEAD_CLOSED'
-        },
-        campaign: {
-          type: 'string',
-          description: 'Source campaign ID'
-        },
-        list_id: {
-          type: 'string',
-          description: 'Source list ID'
-        },
-        in_campaign: {
-          type: 'boolean',
-          description: 'Filter: in campaign (true/false)'
-        },
-        in_list: {
-          type: 'boolean',
-          description: 'Filter: in list (true/false)'
-        },
-        queries: {
-          type: 'array',
-          items: { type: 'object' },
-          description: 'Advanced filters'
-        },
-        excluded_ids: {
-          type: 'array',
-          items: { type: 'string' },
-          description: 'Lead IDs to exclude'
-        },
-        contacts: {
-          type: 'array',
-          items: { type: 'string' },
-          description: 'Email addresses to filter'
-        },
-        check_duplicates_in_campaigns: {
-          type: 'boolean',
-          description: 'Check duplicates (recommended: true)'
-        },
-        skip_leads_in_verification: {
-          type: 'boolean',
-          description: 'Skip leads being verified (recommended: true)'
-        },
-        limit: {
-          type: 'number',
-          description: 'Max leads to move'
-        },
-        assigned_to: {
-          type: 'string',
-          description: 'User ID to assign moved leads'
-        },
-        esp_code: {
-          type: 'number',
-          description: 'ESP code: 0=Queue, 1=Google, 2=Microsoft, 3=Zoho, 9=Yahoo, 10=Yandex, 12=Web.de, 13=Libero.it, 999=Other, 1000=Not Found'
-        },
-        esg_code: {
-          type: 'number',
-          description: 'ESG code: 0=Queue, 1=Barracuda, 2=Mimecast, 3=Proofpoint, 4=Cisco'
-        },
-        copy_leads: {
-          type: 'boolean',
-          description: 'Copy instead of move (default: false)'
-        },
-        check_duplicates: {
-          type: 'boolean',
-          description: 'Check duplicates (default: false)'
-        }
-      },
-      required: [],
-      additionalProperties: false
+        to_campaign_id: { type: 'string', description: 'Destination (OR to_list_id)' },
+        to_list_id: { type: 'string', description: 'Destination (OR to_campaign_id)' },
+        ids: { type: 'array', items: { type: 'string' }, description: 'Lead IDs' },
+        search: { type: 'string' },
+        filter: { type: 'string', description: 'Contact status filter' },
+        campaign: { type: 'string', description: 'Source campaign' },
+        list_id: { type: 'string', description: 'Source list' },
+        in_campaign: { type: 'boolean' },
+        in_list: { type: 'boolean' },
+        queries: { type: 'array', items: { type: 'object' } },
+        excluded_ids: { type: 'array', items: { type: 'string' } },
+        contacts: { type: 'array', items: { type: 'string' } },
+        check_duplicates_in_campaigns: { type: 'boolean' },
+        skip_leads_in_verification: { type: 'boolean' },
+        limit: { type: 'number' },
+        assigned_to: { type: 'string' },
+        esp_code: { type: 'number', description: '0=Queue, 1=Google, 2=MS, etc.' },
+        esg_code: { type: 'number', description: '0=Queue, 1=Barracuda, etc.' },
+        copy_leads: { type: 'boolean', description: 'Copy instead of move' },
+        check_duplicates: { type: 'boolean' }
+      }
     }
   },
 ];

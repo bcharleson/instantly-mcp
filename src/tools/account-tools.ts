@@ -1,243 +1,143 @@
 /**
- * Instantly MCP Server - Account Tools
+ * Instantly MCP Server - Account Tools (Compacted)
  * 
  * Tool definitions for account management operations.
- * Total: 11 account tools
+ * Optimized for minimal context window overhead.
+ * Total: 10 account tools (consolidated get_account_details + get_account_info)
  */
 
 export const accountTools = [
   {
     name: 'list_accounts',
-    title: 'List Email Accounts',
-    description: 'List email accounts with pagination. Filter by domain, status, provider, or tags. Use exact cursor from next_starting_after for pagination.',
+    title: 'List Accounts',
+    description: 'List email accounts with pagination. Filter by status, provider, or tags.',
+    annotations: { readOnlyHint: true },
     inputSchema: {
       type: 'object',
       properties: {
-        limit: {
-          type: 'number',
-          description: 'Number of items per page (1-100, default: 100)',
-          minimum: 1,
-          maximum: 100
-        },
-        starting_after: {
-          type: 'string',
-          description: 'Pagination cursor from previous response. CRITICAL: Use the EXACT value from response.pagination.next_starting_after field (NOT an email address or ID from the data). Example: If previous response had "next_starting_after": "abc123xyz", use starting_after="abc123xyz". Omit for first page.'
-        },
-        search: {
-          type: 'string',
-          description: 'Search accounts by email domain (e.g., "gmail.com", "company.com"). Filters accounts whose email addresses contain this string.'
-        },
-        status: {
-          type: 'number',
-          description: 'Filter by account status. Values: 1=Active, 2=Paused, -1=Connection Error, -2=Soft Bounce Error, -3=Sending Error',
-          enum: [1, 2, -1, -2, -3]
-        },
-        provider_code: {
-          type: 'number',
-          description: 'Filter by ESP provider. Values: 1=Custom IMAP/SMTP, 2=Google, 3=Microsoft, 4=AWS',
-          enum: [1, 2, 3, 4]
-        },
-        tag_ids: {
-          type: 'string',
-          description: 'Filter by tag IDs (comma-separated). Example: "tag1,tag2,tag3"'
-        }
-      },
-      additionalProperties: false
+        limit: { type: 'number', description: '1-100, default: 100' },
+        starting_after: { type: 'string', description: 'Cursor from pagination.next_starting_after' },
+        search: { type: 'string', description: 'Search by email domain' },
+        status: { type: 'number', description: '1=Active, 2=Paused, -1/-2/-3=Errors', enum: [1, 2, -1, -2, -3] },
+        provider_code: { type: 'number', description: '1=IMAP, 2=Google, 3=Microsoft, 4=AWS', enum: [1, 2, 3, 4] },
+        tag_ids: { type: 'string', description: 'Comma-separated tag IDs' }
+      }
     }
   },
 
   {
-    name: 'get_account_details',
-    title: 'Get Account Details',
-    description: 'Get account details including warmup status and campaign eligibility',
+    name: 'get_account',
+    title: 'Get Account',
+    description: 'Get account details, warmup status, and campaign eligibility by email',
+    annotations: { readOnlyHint: true },
     inputSchema: {
       type: 'object',
       properties: {
         email: { type: 'string', description: 'Account email address' }
       },
-      required: ['email'],
-      additionalProperties: false
-    }
-  },
-
-  {
-    name: 'get_account_info',
-    title: 'Get Account Info',
-    description: 'Get account information and status (read-only)',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        email: { type: 'string', description: 'Account email address' }
-      },
-      required: ['email'],
-      additionalProperties: false
+      required: ['email']
     }
   },
 
   {
     name: 'create_account',
-    title: 'Create Email Account',
-    description: 'Create email account with IMAP/SMTP configuration. Requires email, name, provider_code, and IMAP/SMTP credentials.',
+    title: 'Create Account',
+    description: 'Create email account with IMAP/SMTP credentials',
+    annotations: { destructiveHint: false },
     inputSchema: {
       type: 'object',
       properties: {
-        email: { type: 'string', description: 'Email address' },
-        first_name: { type: 'string', description: 'First name' },
-        last_name: { type: 'string', description: 'Last name' },
-        provider_code: { type: 'number', description: 'Email provider code' },
-        imap_username: { type: 'string', description: 'IMAP username' },
-        imap_password: { type: 'string', description: 'IMAP password' },
-        imap_host: { type: 'string', description: 'IMAP host (e.g., imap.gmail.com)' },
-        imap_port: { type: 'number', description: 'IMAP port (e.g., 993)' },
-        smtp_username: { type: 'string', description: 'SMTP username' },
-        smtp_password: { type: 'string', description: 'SMTP password' },
-        smtp_host: { type: 'string', description: 'SMTP host (e.g., smtp.gmail.com)' },
-        smtp_port: { type: 'number', description: 'SMTP port (e.g., 587)' }
+        email: { type: 'string' },
+        first_name: { type: 'string' },
+        last_name: { type: 'string' },
+        provider_code: { type: 'number', description: '1=IMAP, 2=Google, 3=Microsoft, 4=AWS' },
+        imap_username: { type: 'string' },
+        imap_password: { type: 'string' },
+        imap_host: { type: 'string', description: 'e.g., imap.gmail.com' },
+        imap_port: { type: 'number', description: 'e.g., 993' },
+        smtp_username: { type: 'string' },
+        smtp_password: { type: 'string' },
+        smtp_host: { type: 'string', description: 'e.g., smtp.gmail.com' },
+        smtp_port: { type: 'number', description: 'e.g., 587' }
       },
-      required: ['email', 'first_name', 'last_name', 'provider_code', 'imap_username', 'imap_password', 'imap_host', 'imap_port', 'smtp_username', 'smtp_password', 'smtp_host', 'smtp_port'],
-      additionalProperties: false
-    }
-  },
-
-  {
-    name: 'pause_account',
-    title: 'Pause Account',
-    description: 'Pause sending account',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        email: { type: 'string', description: 'Account email' }
-      },
-      required: ['email'],
-      additionalProperties: false
-    }
-  },
-
-  {
-    name: 'resume_account',
-    title: 'Resume Account',
-    description: 'Resume paused sending account',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        email: { type: 'string', description: 'Account email' }
-      },
-      required: ['email'],
-      additionalProperties: false
-    }
-  },
-
-  {
-    name: 'enable_warmup',
-    title: 'Enable Warmup',
-    description: 'Enable email warmup to improve deliverability',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        email: { type: 'string', description: 'Account email' }
-      },
-      required: ['email'],
-      additionalProperties: false
-    }
-  },
-
-  {
-    name: 'disable_warmup',
-    title: 'Disable Warmup',
-    description: 'Disable email warmup',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        email: { type: 'string', description: 'Account email' }
-      },
-      required: ['email'],
-      additionalProperties: false
-    }
-  },
-
-  {
-    name: 'test_account_vitals',
-    title: 'Test Account Vitals',
-    description: 'Test account connectivity and health',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        email: { type: 'string', description: 'Account email' }
-      },
-      required: ['email'],
-      additionalProperties: false
+      required: ['email', 'first_name', 'last_name', 'provider_code', 'imap_username', 'imap_password', 'imap_host', 'imap_port', 'smtp_username', 'smtp_password', 'smtp_host', 'smtp_port']
     }
   },
 
   {
     name: 'update_account',
     title: 'Update Account',
-    description: 'Update account settings (partial updates). Supports name, warmup config, daily_limit, sending_gap, tracking_domain.',
+    description: 'Update account settings (partial). Supports name, warmup, daily_limit, sending_gap, tracking_domain.',
+    annotations: { destructiveHint: false },
     inputSchema: {
       type: 'object',
       properties: {
-        email: { type: 'string', description: 'Email address of the account to update (required)' },
-
-        // Basic account information
-        first_name: { type: 'string', description: 'First name associated with the account' },
-        last_name: { type: 'string', description: 'Last name associated with the account' },
-
-        // Warmup configuration
+        email: { type: 'string', description: 'Account to update' },
+        first_name: { type: 'string' },
+        last_name: { type: 'string' },
         warmup: {
           type: 'object',
-          description: 'Warmup configuration for the account',
           properties: {
-            limit: { type: 'number', description: 'Warmup limit (number of warmup emails per day)' },
+            limit: { type: 'number' },
             advanced: {
               type: 'object',
-              description: 'Advanced warmup settings',
               properties: {
-                warm_ctd: { type: 'boolean', description: 'Warm click-to-deliver' },
-                open_rate: { type: 'number', description: 'Target open rate for warmup emails' },
-                important_rate: { type: 'number', description: 'Rate of marking emails as important' },
-                read_emulation: { type: 'boolean', description: 'Enable read emulation' },
-                spam_save_rate: { type: 'number', description: 'Rate of saving emails from spam' },
-                weekday_only: { type: 'boolean', description: 'Send warmup emails only on weekdays' }
-              },
-              additionalProperties: false
+                warm_ctd: { type: 'boolean' },
+                open_rate: { type: 'number' },
+                important_rate: { type: 'number' },
+                read_emulation: { type: 'boolean' },
+                spam_save_rate: { type: 'number' },
+                weekday_only: { type: 'boolean' }
+              }
             },
-            warmup_custom_ftag: { type: 'string', description: 'Custom warmup tag' },
-            increment: { type: 'string', description: 'Increment setting for warmup ramp-up' },
-            reply_rate: { type: 'number', description: 'Target reply rate for warmup emails' }
-          },
-          additionalProperties: false
+            warmup_custom_ftag: { type: 'string' },
+            increment: { type: 'string' },
+            reply_rate: { type: 'number' }
+          }
         },
-
-        // Sending limits and configuration
-        daily_limit: { type: 'number', description: 'Daily email sending limit per account' },
-        sending_gap: { type: 'number', description: 'Gap between emails sent from this account in minutes (0-1440, minimum wait time when used with multiple campaigns)' },
-        enable_slow_ramp: { type: 'boolean', description: 'Enable slow ramp up for sending limits' },
-
-        // Tracking domain configuration
-        tracking_domain_name: { type: 'string', description: 'Tracking domain name' },
-        tracking_domain_status: { type: 'string', description: 'Tracking domain status' },
-        skip_cname_check: { type: 'boolean', description: 'Skip CNAME check for tracking domain' },
-        remove_tracking_domain: { type: 'boolean', description: 'Remove tracking domain from account' },
-
-        // Inbox placement testing
-        inbox_placement_test_limit: { type: 'number', description: 'Limit for inbox placement tests' }
+        daily_limit: { type: 'number' },
+        sending_gap: { type: 'number', description: 'Minutes between emails (0-1440)' },
+        enable_slow_ramp: { type: 'boolean' },
+        tracking_domain_name: { type: 'string' },
+        tracking_domain_status: { type: 'string' },
+        skip_cname_check: { type: 'boolean' },
+        remove_tracking_domain: { type: 'boolean' },
+        inbox_placement_test_limit: { type: 'number' }
       },
-      required: ['email'],
-      additionalProperties: false
+      required: ['email']
+    }
+  },
+
+  {
+    name: 'manage_account_state',
+    title: 'Manage Account State',
+    description: 'Pause, resume, enable/disable warmup, or test account vitals',
+    annotations: { destructiveHint: false },
+    inputSchema: {
+      type: 'object',
+      properties: {
+        email: { type: 'string', description: 'Account email' },
+        action: { 
+          type: 'string', 
+          description: 'Action to perform',
+          enum: ['pause', 'resume', 'enable_warmup', 'disable_warmup', 'test_vitals']
+        }
+      },
+      required: ['email', 'action']
     }
   },
 
   {
     name: 'delete_account',
     title: 'Delete Account',
-    description: '🚨 DESTRUCTIVE: Permanently delete email account. ⚠️ CANNOT BE UNDONE! All data lost forever. Use with extreme caution!',
+    description: '🚨 PERMANENTLY delete account. CANNOT UNDO. All data lost forever!',
+    annotations: { destructiveHint: true, confirmationRequiredHint: true },
     inputSchema: {
       type: 'object',
       properties: {
-        email: { type: 'string', description: '⚠️ Email to DELETE PERMANENTLY' }
+        email: { type: 'string', description: 'Email to DELETE PERMANENTLY' }
       },
-      required: ['email'],
-      additionalProperties: false
+      required: ['email']
     }
   },
 ];

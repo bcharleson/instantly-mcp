@@ -1,109 +1,58 @@
 /**
- * Instantly MCP Server - Analytics Tools
+ * Instantly MCP Server - Analytics Tools (Compacted)
  * 
- * Tool definitions for analytics and reporting operations.
+ * Tool definitions for analytics and reporting.
+ * Optimized for minimal context window overhead.
  * Total: 3 analytics tools
  */
 
 export const analyticsTools = [
   {
     name: 'get_campaign_analytics',
-    title: 'Get Campaign Analytics',
-    description: 'Get campaign performance metrics (opens, clicks, replies, bounces). Filter by campaign ID(s) and date range.',
+    title: 'Campaign Analytics',
+    description: 'Get campaign metrics: opens, clicks, replies, bounces. Filter by campaign(s) and dates.',
+    annotations: { readOnlyHint: true },
     inputSchema: {
       type: 'object',
       properties: {
-        campaign_id: {
-          type: 'string',
-          description: 'Single campaign ID (optional, omit for all campaigns)'
-        },
-        campaign_ids: {
-          type: 'array',
-          items: { type: 'string' },
-          description: 'Multiple campaign IDs (optional, use instead of campaign_id)'
-        },
-        start_date: {
-          type: 'string',
-          description: 'Start date (YYYY-MM-DD, optional)',
-          pattern: '^\\d{4}-\\d{2}-\\d{2}$'
-        },
-        end_date: {
-          type: 'string',
-          description: 'End date (YYYY-MM-DD, optional)',
-          pattern: '^\\d{4}-\\d{2}-\\d{2}$'
-        },
-        exclude_total_leads_count: {
-          type: 'boolean',
-          description: 'Exclude leads count for faster response (optional)'
-        }
-      },
-      required: [],
-      additionalProperties: false
+        campaign_id: { type: 'string', description: 'Single campaign UUID (omit for all)' },
+        campaign_ids: { type: 'array', items: { type: 'string' }, description: 'Multiple campaign UUIDs' },
+        start_date: { type: 'string', description: 'YYYY-MM-DD' },
+        end_date: { type: 'string', description: 'YYYY-MM-DD' },
+        exclude_total_leads_count: { type: 'boolean', description: 'Faster response' }
+      }
     }
   },
 
   {
     name: 'get_daily_campaign_analytics',
-    title: 'Get Daily Campaign Analytics',
-    description: 'Get day-by-day campaign performance analytics with date filtering',
+    title: 'Daily Analytics',
+    description: 'Day-by-day campaign performance analytics',
+    annotations: { readOnlyHint: true },
     inputSchema: {
       type: 'object',
       properties: {
-        campaign_id: {
-          type: 'string',
-          description: 'Campaign ID (optional, omit for all)',
-          pattern: '^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$'
-        },
-        start_date: {
-          type: 'string',
-          description: 'Start date (YYYY-MM-DD)',
-          pattern: '^\\d{4}-\\d{2}-\\d{2}$'
-        },
-        end_date: {
-          type: 'string',
-          description: 'End date (YYYY-MM-DD)',
-          pattern: '^\\d{4}-\\d{2}-\\d{2}$'
-        },
-        campaign_status: {
-          type: 'number',
-          description: 'Campaign status filter: 0=Draft, 1=Active, 2=Paused, 3=Completed, 4=Running Subsequences',
-          enum: [0, 1, 2, 3, 4, -99, -1, -2]
-        }
-      },
-      required: [],
-      additionalProperties: false
+        campaign_id: { type: 'string', description: 'Campaign UUID (omit for all)' },
+        start_date: { type: 'string', description: 'YYYY-MM-DD' },
+        end_date: { type: 'string', description: 'YYYY-MM-DD' },
+        campaign_status: { type: 'number', description: '0=Draft, 1=Active, 2=Paused, 3=Completed', enum: [0, 1, 2, 3, 4, -99, -1, -2] }
+      }
     }
   },
 
   {
     name: 'get_warmup_analytics',
-    title: 'Get Warmup Analytics',
-    description: 'Get email warmup analytics for one or more accounts',
+    title: 'Warmup Analytics',
+    description: 'Get warmup metrics for account(s)',
+    annotations: { readOnlyHint: true },
     inputSchema: {
       type: 'object',
       properties: {
-        emails: {
-          type: 'array',
-          items: { type: 'string' },
-          description: 'Email addresses for warmup analytics'
-        },
-        email: {
-          type: 'string',
-          description: 'Single email address (alternative to emails array)'
-        },
-        start_date: {
-          type: 'string',
-          description: 'Start date (YYYY-MM-DD, optional)',
-          pattern: '^\\d{4}-\\d{2}-\\d{2}$'
-        },
-        end_date: {
-          type: 'string',
-          description: 'End date (YYYY-MM-DD, optional)',
-          pattern: '^\\d{4}-\\d{2}-\\d{2}$'
-        }
-      },
-      required: [],
-      additionalProperties: false
+        emails: { type: 'array', items: { type: 'string' }, description: 'Account emails' },
+        email: { type: 'string', description: 'Single email (alternative)' },
+        start_date: { type: 'string', description: 'YYYY-MM-DD' },
+        end_date: { type: 'string', description: 'YYYY-MM-DD' }
+      }
     }
   },
 ];

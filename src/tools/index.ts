@@ -1,15 +1,18 @@
 /**
- * Instantly MCP Server - Tools Registry
+ * Instantly MCP Server - Tools Registry (Optimized v2.0)
  *
- * Central registry that combines all tool definitions from different categories.
- * This file exports the complete TOOLS_DEFINITION array used by the MCP server.
+ * Central registry combining all tool definitions.
+ * Optimized for minimal context window overhead with:
+ * - Compacted descriptions
+ * - Consolidated duplicate tools
+ * - MCP 2025-06-18 annotations support
  *
- * Total: 36 tools across 5 categories
- * - Account tools: 11 tools
- * - Campaign tools: 6 tools
- * - Lead tools: 11 tools (includes bulk import, delete, and move)
- * - Email tools: 5 tools
- * - Analytics tools: 3 tools
+ * Total: 31 tools across 5 categories (reduced from 36)
+ * - Account tools: 6 (consolidated from 11)
+ * - Campaign tools: 6
+ * - Lead tools: 11
+ * - Email tools: 5
+ * - Analytics tools: 3
  */
 
 import { accountTools } from './account-tools.js';
@@ -25,13 +28,13 @@ import { analyticsTools } from './analytics-tools.js';
  * Tools are organized by category for better maintainability.
  */
 export const TOOLS_DEFINITION = [
-  // Account Management Tools (11 tools)
+  // Account Management Tools (6 tools - consolidated)
   ...accountTools,
 
   // Campaign Management Tools (6 tools)
   ...campaignTools,
 
-  // Lead Management Tools (11 tools - includes bulk import, delete, and move)
+  // Lead Management Tools (11 tools)
   ...leadTools,
 
   // Email Management Tools (5 tools)
@@ -85,9 +88,9 @@ export function validateToolDefinitions(): { valid: boolean; errors: string[] } 
     }
   }
 
-  // Validate expected count
-  if (TOOLS_DEFINITION.length !== 36) {
-    errors.push(`Expected 36 tools, found ${TOOLS_DEFINITION.length}`);
+  // Validate expected count (31 after consolidation)
+  if (TOOLS_DEFINITION.length !== 31) {
+    errors.push(`Expected 31 tools, found ${TOOLS_DEFINITION.length}`);
   }
 
   return {
