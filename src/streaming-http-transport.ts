@@ -52,6 +52,7 @@ export class StreamingHttpTransport {
   private transports = new Map<string, StreamableHTTPServerTransport>(); // Store transports by session ID
   private sseTransports = new Map<string, SSEServerTransport>(); // Store SSE transports by session ID
   private sseSessionMetadata = new Map<string, { apiKey?: string }>(); // Store API key and other metadata per SSE session
+  private sseGetConnections = new Map<string, express.Response>(); // Store GET SSE connections for server-initiated notifications
   private requestHandlers?: {
     toolsList: (id: any) => Promise<any>;
     toolCall: (params: any, id: any) => Promise<any>;
@@ -180,7 +181,7 @@ export class StreamingHttpTransport {
         'Server': 'instantly-mcp/1.2.0',
         // MCP Transport detection headers - helps Cursor/Augment identify correct transport
         'X-MCP-Transport': 'streamable-http',
-        'X-MCP-Protocol-Version': '2025-06-18'
+        'X-MCP-Protocol-Version': '2025-03-26'
       });
       next();
     });
@@ -273,9 +274,9 @@ export class StreamingHttpTransport {
     });
 
     // MCP Protocol Version header (required by spec)
-    // Updated to 2025-06-18 for latest MCP protocol features
+    // Updated to 2025-03-26 for Streamable HTTP transport (official MCP spec version)
     this.app.use((req, res, next) => {
-      res.setHeader('mcp-protocol-version', '2025-06-18');
+      res.setHeader('mcp-protocol-version', '2025-03-26');
       next();
     });
   }
@@ -306,7 +307,7 @@ export class StreamingHttpTransport {
         version: '1.2.0',
         transport: 'dual-protocol',
         protocols: {
-          streamable_http: '2025-06-18',
+          streamable_http: '2025-03-26',
           sse: '2024-11-05'
         },
         timestamp: new Date().toISOString(),
@@ -331,7 +332,7 @@ export class StreamingHttpTransport {
         description: 'Official Instantly.ai MCP server with 34 email automation tools',
         transport: 'streaming-http',
         endpoint: 'https://mcp.instantly.ai/mcp',
-        protocol: '2025-06-18',
+        protocol: '2025-03-26',
         tools: 34,
         capabilities: {
           tools: true,
@@ -596,75 +597,122 @@ export class StreamingHttpTransport {
       });
     });
 
-    // GET endpoint for MCP clients - MCP Spec Compliant
+    // GET endpoint for MCP clients - MCP Spec Compliant (Updated for Cursor compatibility)
     // Per MCP Streamable HTTP spec (2025-03-26):
-    // - If Accept: text/event-stream → Return SSE stream OR 405 Method Not Allowed
-    // - For discovery/browsers → Return JSON with transport hints
+    // - If Accept: text/event-stream → Return SSE stream for server-initiated notifications
+    // - If Accept header doesn't include text/event-stream → Return 406 Not Acceptable
+    // - For discovery/browsers (no Accept header) → Return JSON with transport hints
     //
-    // We implement Streamable HTTP (POST-based), NOT SSE, so we return 405 for SSE requests
-    // This helps Cursor/Augment correctly detect our transport type
+    // This implementation follows the official SDK's StreamableHTTPServerTransport.handleGetRequest()
+    // pattern to support clients like Cursor that open GET SSE streams for notifications
     this.app.get('/mcp/:apiKey?', (req, res) => {
       const apiKey = req.params.apiKey;
       const acceptHeader = req.headers.accept || '';
       const wantsSSE = acceptHeader.includes('text/event-stream');
+      const sessionId = req.headers['mcp-session-id'] as string || randomUUID();
 
       console.error(`[HTTP] 🔍 GET /mcp request - API Key: ${apiKey ? '✅ Present' : '❌ Missing'}`);
       console.error(`[HTTP] 📋 Accept: ${acceptHeader}`);
       console.error(`[HTTP] 📋 Wants SSE: ${wantsSSE}`);
+      console.error(`[HTTP] 📋 Session ID: ${sessionId}`);
 
-      // MCP Spec: If client wants SSE but we only support Streamable HTTP, return 405
-      // This tells the client to use POST for Streamable HTTP transport
+      // MCP Spec: If client wants SSE, return an SSE stream
+      // This is for server-initiated notifications (per official SDK pattern)
       if (wantsSSE) {
-        console.error(`[HTTP] 📋 Returning 405 - SSE not supported, use POST for Streamable HTTP`);
+        console.error(`[HTTP] 📡 Opening SSE stream for notifications (session: ${sessionId})`);
 
-        // Set explicit headers to help client detect transport
+        // Set SSE headers per official SDK
         res.set({
-          'Allow': 'POST, OPTIONS',
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache, no-transform',
+          'Connection': 'keep-alive',
+          'X-Accel-Buffering': 'no', // Disable nginx buffering
+          'mcp-session-id': sessionId,
           'X-MCP-Transport': 'streamable-http',
-          'X-MCP-Protocol-Version': '2025-06-18',
-          'Content-Type': 'application/json'
+          'X-MCP-Protocol-Version': '2025-03-26'
         });
 
-        const errorBody = JSON.stringify({
+        // Flush headers immediately to establish SSE connection
+        res.status(200).flushHeaders();
+
+        // Send initial SSE comment to keep connection alive and confirm establishment
+        res.write(': SSE stream established\n\n');
+
+        // Store this connection for sending notifications later
+        this.sseGetConnections.set(sessionId, res);
+        console.error(`[HTTP] 📡 SSE connection stored (total: ${this.sseGetConnections.size})`);
+
+        // Handle client disconnect
+        req.on('close', () => {
+          console.error(`[HTTP] 📡 SSE connection closed (session: ${sessionId})`);
+          this.sseGetConnections.delete(sessionId);
+        });
+
+        // Keep connection alive with periodic heartbeat
+        const heartbeatInterval = setInterval(() => {
+          if (res.writableEnded) {
+            clearInterval(heartbeatInterval);
+            return;
+          }
+          try {
+            res.write(': heartbeat\n\n');
+          } catch (error) {
+            console.error(`[HTTP] ❌ Heartbeat failed for session ${sessionId}:`, error);
+            clearInterval(heartbeatInterval);
+            this.sseGetConnections.delete(sessionId);
+          }
+        }, 30000); // 30 second heartbeat
+
+        // Clean up heartbeat on connection close
+        res.on('close', () => {
+          clearInterval(heartbeatInterval);
+        });
+
+        return; // Keep connection open
+      }
+
+      // For non-SSE requests (browsers, debugging, discovery)
+      // Check if Accept header is present but doesn't include text/event-stream
+      // Per MCP spec, return 406 Not Acceptable
+      if (acceptHeader && !acceptHeader.includes('*/*') && !acceptHeader.includes('application/json')) {
+        console.error(`[HTTP] 📋 Returning 406 - Accept header doesn't include text/event-stream or application/json`);
+        res.set({
+          'Content-Type': 'application/json',
+          'X-MCP-Transport': 'streamable-http',
+          'X-MCP-Protocol-Version': '2025-03-26'
+        });
+        return res.status(406).json({
           jsonrpc: '2.0',
           error: {
             code: -32000,
-            message: 'SSE transport not supported. Use POST for Streamable HTTP transport.',
+            message: 'Not Acceptable. Accept header must include text/event-stream for GET requests.',
             data: {
               transport: 'streamable-http',
-              protocol: '2025-06-18',
-              hint: 'Send POST requests with JSON-RPC body to this endpoint',
-              endpoints: {
-                post: apiKey ? `/mcp/${apiKey}` : '/mcp',
-                health: '/health'
-              }
+              protocol: '2025-03-26',
+              hint: 'Use Accept: text/event-stream for SSE, or POST for JSON-RPC requests'
             }
           },
           id: null
         });
-
-        // Set Content-Length for HTTP/2 compatibility
-        res.set('Content-Length', Buffer.byteLength(errorBody).toString());
-        return res.status(405).send(errorBody);
       }
 
-      // For non-SSE requests (browsers, debugging, discovery)
-      // Return JSON with explicit transport information
+      // Return JSON with explicit transport information (for browsers, discovery)
       const responseBody = JSON.stringify({
         server: 'instantly-mcp',
         version: '1.2.0',
         transport: 'streamable-http',
-        protocol: '2025-06-18',
+        protocol: '2025-03-26',
         tools: TOOLS_DEFINITION.length,
         endpoints: {
           'mcp_post': apiKey ? `/mcp/${apiKey}` : '/mcp',
+          'mcp_sse': apiKey ? `/mcp/${apiKey}` : '/mcp',
           'health': '/health',
           'info': '/info'
         },
         auth: {
           required: true,
           methods: ['path_parameter', 'header'],
-          note: 'Use POST to /mcp/{API_KEY} for MCP communication'
+          note: 'Use POST to /mcp/{API_KEY} for MCP communication, GET for SSE notifications'
         },
         status: 'ready'
       });
@@ -674,7 +722,7 @@ export class StreamingHttpTransport {
         'Content-Type': 'application/json',
         'Content-Length': Buffer.byteLength(responseBody).toString(),
         'X-MCP-Transport': 'streamable-http',
-        'X-MCP-Protocol-Version': '2025-06-18'
+        'X-MCP-Protocol-Version': '2025-03-26'
       });
 
       res.send(responseBody);
@@ -879,7 +927,7 @@ export class StreamingHttpTransport {
         message: `Endpoint ${req.path} not found`,
         availableEndpoints: ['/mcp', '/mcp/{API_KEY}', '/authorize', '/health', '/info'],
         transport: 'streamable-http',
-        protocol: '2025-06-18'
+        protocol: '2025-03-26'
       });
     });
   }
