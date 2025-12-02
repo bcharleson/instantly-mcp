@@ -168,6 +168,7 @@ export class StreamingHttpTransport {
     });
 
     // Enhanced headers for Claude Desktop remote connector compatibility
+    // ALSO: Add explicit transport hints for Cursor/Augment MCP client detection
     this.app.use((req, res, next) => {
       res.set({
         'Connection': 'keep-alive',
@@ -176,7 +177,10 @@ export class StreamingHttpTransport {
         'X-Content-Type-Options': 'nosniff',
         'X-Frame-Options': 'DENY',
         'X-XSS-Protection': '1; mode=block',
-        'Server': 'instantly-mcp/1.2.0'
+        'Server': 'instantly-mcp/1.2.0',
+        // MCP Transport detection headers - helps Cursor/Augment identify correct transport
+        'X-MCP-Transport': 'streamable-http',
+        'X-MCP-Protocol-Version': '2025-06-18'
       });
       next();
     });
@@ -592,20 +596,61 @@ export class StreamingHttpTransport {
       });
     });
 
-    // GET endpoint for MCP clients
-    // IMPORTANT: Returns immediately - no blocking on SSE setup
-    // Cursor and most MCP clients use POST for actual communication
+    // GET endpoint for MCP clients - MCP Spec Compliant
+    // Per MCP Streamable HTTP spec (2025-03-26):
+    // - If Accept: text/event-stream → Return SSE stream OR 405 Method Not Allowed
+    // - For discovery/browsers → Return JSON with transport hints
+    //
+    // We implement Streamable HTTP (POST-based), NOT SSE, so we return 405 for SSE requests
+    // This helps Cursor/Augment correctly detect our transport type
     this.app.get('/mcp/:apiKey?', (req, res) => {
       const apiKey = req.params.apiKey;
       const acceptHeader = req.headers.accept || '';
+      const wantsSSE = acceptHeader.includes('text/event-stream');
 
       console.error(`[HTTP] 🔍 GET /mcp request - API Key: ${apiKey ? '✅ Present' : '❌ Missing'}`);
       console.error(`[HTTP] 📋 Accept: ${acceptHeader}`);
+      console.error(`[HTTP] 📋 Wants SSE: ${wantsSSE}`);
 
-      // For ALL GET requests, return server info immediately
-      // This ensures Cursor and other clients don't hang on discovery
-      // Actual MCP communication happens via POST
-      res.json({
+      // MCP Spec: If client wants SSE but we only support Streamable HTTP, return 405
+      // This tells the client to use POST for Streamable HTTP transport
+      if (wantsSSE) {
+        console.error(`[HTTP] 📋 Returning 405 - SSE not supported, use POST for Streamable HTTP`);
+
+        // Set explicit headers to help client detect transport
+        res.set({
+          'Allow': 'POST, OPTIONS',
+          'X-MCP-Transport': 'streamable-http',
+          'X-MCP-Protocol-Version': '2025-06-18',
+          'Content-Type': 'application/json'
+        });
+
+        const errorBody = JSON.stringify({
+          jsonrpc: '2.0',
+          error: {
+            code: -32000,
+            message: 'SSE transport not supported. Use POST for Streamable HTTP transport.',
+            data: {
+              transport: 'streamable-http',
+              protocol: '2025-06-18',
+              hint: 'Send POST requests with JSON-RPC body to this endpoint',
+              endpoints: {
+                post: apiKey ? `/mcp/${apiKey}` : '/mcp',
+                health: '/health'
+              }
+            }
+          },
+          id: null
+        });
+
+        // Set Content-Length for HTTP/2 compatibility
+        res.set('Content-Length', Buffer.byteLength(errorBody).toString());
+        return res.status(405).send(errorBody);
+      }
+
+      // For non-SSE requests (browsers, debugging, discovery)
+      // Return JSON with explicit transport information
+      const responseBody = JSON.stringify({
         server: 'instantly-mcp',
         version: '1.2.0',
         transport: 'streamable-http',
@@ -623,6 +668,16 @@ export class StreamingHttpTransport {
         },
         status: 'ready'
       });
+
+      // Set explicit headers for transport detection
+      res.set({
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(responseBody).toString(),
+        'X-MCP-Transport': 'streamable-http',
+        'X-MCP-Protocol-Version': '2025-06-18'
+      });
+
+      res.send(responseBody);
     });
 
     // POST /messages endpoint for SSE transport (Claude.ai proxy compatibility)
