@@ -9,10 +9,6 @@ import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import express from 'express';
 import cors from 'cors';
 import { createServer, Server as HttpServer } from 'http';
-import { readFileSync } from 'fs';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
-import { randomUUID } from 'node:crypto';
 import { TOOLS_DEFINITION } from './tools/index.js';
 import { executeToolDirectly } from './handlers/tool-executor.js';
 
@@ -48,92 +44,23 @@ export class StreamingHttpTransport {
   private config: StreamingHttpConfig;
   private app: express.Application;
   private httpServer?: HttpServer;
-  private activeSessions = new Map<string, any>();
-  private transports = new Map<string, StreamableHTTPServerTransport>(); // Store transports by session ID
-  private sseTransports = new Map<string, SSEServerTransport>(); // Store SSE transports by session ID
-  private sseSessionMetadata = new Map<string, { apiKey?: string }>(); // Store API key and other metadata per SSE session
-  private sseGetConnections = new Map<string, express.Response>(); // Store GET SSE connections for server-initiated notifications
-  private requestHandlers?: {
-    toolsList: (id: any) => Promise<any>;
-    toolCall: (params: any, id: any) => Promise<any>;
-  };
+
+  // Rate limiting (kept for security)
   private rateLimitMap = new Map<string, RateLimitEntry>();
   private readonly RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
   private readonly RATE_LIMIT_MAX_REQUESTS = 100; // 100 requests per minute per IP
+
+  // Legacy SSE transport support (for /sse and /messages endpoints)
+  private sseTransports = new Map<string, SSEServerTransport>();
+  private sseSessionMetadata = new Map<string, { apiKey?: string }>();
 
   constructor(server: Server, config: StreamingHttpConfig) {
     this.server = server;
     this.config = config;
     this.app = express();
     this.setupMiddleware();
-    // NOTE: We create transport instances per-request in stateful mode
-    // This allows multiple concurrent sessions with different session IDs
+    // Context7-style: Each request creates its own stateless transport
     this.setupRoutes();
-  }
-
-  /**
-   * Handle MCP request with OPTIONAL session-based transport management
-   * Falls back to stateless mode if sessions aren't supported/available
-   */
-  private async handleMcpRequest(req: express.Request, res: express.Response): Promise<void> {
-    try {
-      // Check for existing session ID from request header
-      const sessionId = req.headers['mcp-session-id'] as string | undefined;
-      const isInitRequest = req.body?.method === 'initialize';
-      let transport: StreamableHTTPServerTransport;
-      let effectiveSessionId: string | undefined;
-
-      if (sessionId && this.transports.has(sessionId)) {
-        // Subsequent request with valid session: reuse existing transport
-        transport = this.transports.get(sessionId)!;
-        effectiveSessionId = sessionId;
-        console.error(`[HTTP] 🔄 Reusing existing session: ${sessionId}`);
-
-        // Return session ID in response header
-        res.setHeader('Mcp-Session-Id', sessionId);
-      } else if (sessionId && !this.transports.has(sessionId)) {
-        // Session ID provided but not found - fall back to stateless mode
-        console.error(`[HTTP] ⚠️  Session not found: ${sessionId} - falling back to stateless mode`);
-
-        // Create new stateless transport for this request
-        transport = new StreamableHTTPServerTransport({
-          sessionIdGenerator: undefined, // Stateless mode
-          enableDnsRebindingProtection: false,
-          enableJsonResponse: true,
-        });
-
-        await this.server.connect(transport);
-      } else {
-        // No session ID - use stateless mode (backward compatible)
-        console.error(`[HTTP] 🔓 Stateless request (no session ID)`);
-
-        // Create new stateless transport for this request
-        transport = new StreamableHTTPServerTransport({
-          sessionIdGenerator: undefined, // Stateless mode
-          enableDnsRebindingProtection: false,
-          enableJsonResponse: true,
-        });
-
-        await this.server.connect(transport);
-      }
-
-      // Handle the request with the transport
-      await transport.handleRequest(req, res, req.body);
-      console.error(`[HTTP] ✅ Request handled successfully${effectiveSessionId ? ` for session: ${effectiveSessionId}` : ' (stateless)'}`);
-    } catch (error) {
-      console.error('[HTTP] ❌ MCP request error:', error);
-      if (!res.headersSent) {
-        res.status(500).json({
-          jsonrpc: '2.0',
-          error: {
-            code: -32603,
-            message: 'Internal server error',
-            data: (error as Error).message
-          },
-          id: req.body?.id || null,
-        });
-      }
-    }
   }
 
   /**
@@ -305,18 +232,18 @@ export class StreamingHttpTransport {
         status: 'healthy',
         service: 'instantly-mcp',
         version: '1.2.0',
-        transport: 'dual-protocol',
+        transport: 'stateless-streamable-http',
         protocols: {
           streamable_http: '2025-03-26',
           sse: '2024-11-05'
         },
         timestamp: new Date().toISOString(),
-        activeSessions: this.activeSessions.size,
-        sseSessions: this.sseTransports.size,
+        mode: 'stateless', // Context7-style: new transport per request
+        sseSessions: this.sseTransports.size, // Legacy SSE sessions
         endpoints: {
-          mcp: '/mcp (GET for SSE, POST for Streamable HTTP)',
+          mcp: '/mcp (all methods handled by SDK)',
           'mcp-with-key': '/mcp/:apiKey',
-          messages: '/messages (POST for SSE transport)',
+          messages: '/messages (POST for legacy SSE transport)',
           health: '/health',
           info: '/info',
           ping: '/ping'
@@ -372,121 +299,74 @@ export class StreamingHttpTransport {
       });
     });
 
-    // DELETE /mcp - Session cleanup endpoint
-    // MUST be registered BEFORE .all('/mcp') to avoid being caught by it
-    this.app.delete('/mcp', async (req, res) => {
-      const sessionId = req.headers['mcp-session-id'] as string | undefined;
+    // ============================================================================
+    // MAIN MCP ENDPOINT - Context7-style Stateless Transport (Cursor Compatible)
+    // ============================================================================
+    // This follows the pattern used by Context7 and Firecrawl MCP servers:
+    // - Single handler for ALL methods (GET, POST, DELETE, OPTIONS)
+    // - Stateless transport: new transport created per request
+    // - Let SDK's handleRequest() manage GET SSE vs POST JSON-RPC automatically
+    // ============================================================================
 
-      console.error('[HTTP] 🗑️  DELETE request received');
-      console.error('[HTTP] Session ID from header:', sessionId);
+    this.app.all('/mcp/:apiKey?', async (req: express.Request, res: express.Response) => {
+      try {
+        // Extract API key from URL path or headers
+        let apiKey = req.params.apiKey ||
+                     req.headers.authorization?.replace('Bearer ', '') ||
+                     req.headers['x-instantly-api-key'] as string ||
+                     req.headers['x-api-key'] as string;
 
-      if (!sessionId) {
-        res.status(400).json({
-          jsonrpc: '2.0',
-          error: {
-            code: -32000,
-            message: 'Bad Request: Session ID required',
-            data: {
-              hint: 'Include Mcp-Session-Id header with the session ID to delete'
-            }
-          },
-          id: null,
+        console.error(`[HTTP] ========== MCP REQUEST ==========`);
+        console.error(`[HTTP] Method: ${req.method}`);
+        console.error(`[HTTP] Path: ${req.path}`);
+        console.error(`[HTTP] Accept: ${req.headers.accept || 'none'}`);
+        console.error(`[HTTP] API Key: ${apiKey ? apiKey.substring(0, 20) + '...' : 'NONE'}`);
+        console.error(`[HTTP] Body method: ${req.body?.method || 'N/A'}`);
+        console.error(`[HTTP] ====================================`);
+
+        // Store API key for tool handlers
+        if (apiKey) {
+          req.headers['x-instantly-api-key'] = apiKey;
+          (req as any).instantlyApiKey = apiKey;
+        }
+
+        // Create a NEW stateless transport per request (Context7/Firecrawl pattern)
+        // This is the key insight: stateless mode + let SDK handle everything
+        const transport = new StreamableHTTPServerTransport({
+          sessionIdGenerator: undefined, // Stateless mode - no session tracking
+          enableJsonResponse: true,      // Return JSON for non-streaming responses
         });
-        return;
-      }
 
-      if (this.transports.has(sessionId)) {
-        // Clean up the session
-        this.transports.delete(sessionId);
-        console.error(`[HTTP] ✅ Session deleted: ${sessionId}`);
-        res.status(204).end();
-      } else {
-        console.error(`[HTTP] ❌ Session not found: ${sessionId}`);
-        res.status(404).json({
-          jsonrpc: '2.0',
-          error: {
-            code: -32001,
-            message: 'Session not found',
-            data: {
-              sessionId,
-              hint: 'Session may have already been cleaned up'
-            }
-          },
-          id: null,
+        // Clean up transport when response closes
+        res.on('close', () => {
+          console.error(`[HTTP] 🔌 Connection closed, cleaning up transport`);
+          transport.close();
         });
+
+        // Connect server to this transport instance
+        await this.server.connect(transport);
+
+        // Let the SDK handle EVERYTHING:
+        // - POST requests → JSON-RPC processing
+        // - GET with Accept: text/event-stream → SSE stream
+        // - DELETE → Session cleanup (returns 405 in stateless mode)
+        await transport.handleRequest(req, res, req.body);
+
+        console.error(`[HTTP] ✅ Request handled by SDK transport`);
+      } catch (error) {
+        console.error('[HTTP] ❌ MCP request error:', error);
+        if (!res.headersSent) {
+          res.status(500).json({
+            jsonrpc: '2.0',
+            error: {
+              code: -32603,
+              message: 'Internal server error',
+              data: (error as Error).message
+            },
+            id: req.body?.id || null,
+          });
+        }
       }
-    });
-
-    // Main MCP endpoint with header-based authentication
-    // Uses POST only - MCP protocol uses JSON-RPC over POST
-    // GET requests handled separately for discovery
-    this.app.post('/mcp', async (req, res) => {
-      // VERBOSE LOGGING FOR CLAUDE DESKTOP/WEB DEBUGGING
-      console.error('[HTTP] ========== INCOMING MCP REQUEST (HEADER AUTH) ==========');
-      console.error('[HTTP] 🔍 FULL REQUEST HEADERS:', JSON.stringify(req.headers, null, 2));
-      console.error('[HTTP] 🔍 REQUEST BODY:', JSON.stringify(req.body, null, 2));
-      console.error('[HTTP] 🔍 REQUEST METHOD:', req.body?.method || 'unknown');
-      console.error('[HTTP] =======================================');
-
-      // Try to extract API key from headers FIRST (for Claude Desktop compatibility)
-      let apiKey = req.headers.authorization?.replace('Bearer ', '') ||
-                   req.headers['x-instantly-api-key'] as string ||
-                   req.headers['x-api-key'] as string;
-
-      if (apiKey) {
-        // API key provided in header - store it and proceed WITHOUT auth middleware
-        console.error('[HTTP] 🔑 API key found in headers, bypassing auth middleware');
-        req.headers['x-instantly-api-key'] = apiKey;
-        (req as any).instantlyApiKey = apiKey;
-      } else {
-        // No API key in headers - this might be an initialize request
-        // Allow it through for protocol negotiation
-        console.error('[HTTP] ⚠️  No API key in headers - allowing for initialize');
-      }
-
-      // Handle session-based transport management (stateful mode)
-      await this.handleMcpRequest(req, res);
-    });
-
-    // URL-based authentication endpoint: /mcp/{API_KEY}
-    // Uses POST only - MCP protocol uses JSON-RPC over POST
-    this.app.post('/mcp/:apiKey', async (req, res) => {
-      // Extract API key from URL path
-      let apiKey = req.params.apiKey;
-
-      if (!apiKey || apiKey.length < 10) {
-        res.status(401).json({
-          jsonrpc: '2.0',
-          id: req.body?.id || null,
-          error: {
-            code: -32001,
-            message: 'Invalid API key in URL path',
-            data: {
-              reason: 'API key too short or missing',
-              format: '/mcp/{INSTANTLY_API_KEY}',
-              example: '/mcp/your-instantly-api-key-here',
-              note: 'Provide your Instantly.ai API key as the path parameter'
-            }
-          }
-        });
-        return;
-      }
-
-      // VERBOSE LOGGING FOR CLAUDE DESKTOP/WEB DEBUGGING
-      console.error('[HTTP] ========== INCOMING MCP REQUEST (URL AUTH) ==========');
-      console.error('[HTTP] 🔑 API Key from URL:', apiKey.substring(0, 20) + '...');
-      console.error('[HTTP] 🔍 FULL REQUEST HEADERS:', JSON.stringify(req.headers, null, 2));
-      console.error('[HTTP] 🔍 REQUEST BODY:', JSON.stringify(req.body, null, 2));
-      console.error('[HTTP] 🔍 REQUEST METHOD:', req.body?.method || 'unknown');
-      console.error('[HTTP] =======================================');
-
-      // Store the API key in request headers for SDK to pass through via extra.requestInfo.headers
-      req.headers['x-instantly-api-key'] = apiKey;
-      // Also store in request object as backup
-      (req as any).instantlyApiKey = apiKey;
-
-      // Handle session-based transport management (stateful mode)
-      await this.handleMcpRequest(req, res);
     });
 
     // OAuth 2.1 Authorization Server Metadata (RFC 8414)
@@ -597,136 +477,11 @@ export class StreamingHttpTransport {
       });
     });
 
-    // GET endpoint for MCP clients - MCP Spec Compliant (Updated for Cursor compatibility)
-    // Per MCP Streamable HTTP spec (2025-03-26):
-    // - If Accept: text/event-stream → Return SSE stream for server-initiated notifications
-    // - If Accept header doesn't include text/event-stream → Return 406 Not Acceptable
-    // - For discovery/browsers (no Accept header) → Return JSON with transport hints
-    //
-    // This implementation follows the official SDK's StreamableHTTPServerTransport.handleGetRequest()
-    // pattern to support clients like Cursor that open GET SSE streams for notifications
-    this.app.get('/mcp/:apiKey?', (req, res) => {
-      const apiKey = req.params.apiKey;
-      const acceptHeader = req.headers.accept || '';
-      const wantsSSE = acceptHeader.includes('text/event-stream');
-      const sessionId = req.headers['mcp-session-id'] as string || randomUUID();
-
-      console.error(`[HTTP] 🔍 GET /mcp request - API Key: ${apiKey ? '✅ Present' : '❌ Missing'}`);
-      console.error(`[HTTP] 📋 Accept: ${acceptHeader}`);
-      console.error(`[HTTP] 📋 Wants SSE: ${wantsSSE}`);
-      console.error(`[HTTP] 📋 Session ID: ${sessionId}`);
-
-      // MCP Spec: If client wants SSE, return an SSE stream
-      // This is for server-initiated notifications (per official SDK pattern)
-      if (wantsSSE) {
-        console.error(`[HTTP] 📡 Opening SSE stream for notifications (session: ${sessionId})`);
-
-        // Set SSE headers per official SDK
-        res.set({
-          'Content-Type': 'text/event-stream',
-          'Cache-Control': 'no-cache, no-transform',
-          'Connection': 'keep-alive',
-          'X-Accel-Buffering': 'no', // Disable nginx buffering
-          'mcp-session-id': sessionId,
-          'X-MCP-Transport': 'streamable-http',
-          'X-MCP-Protocol-Version': '2025-03-26'
-        });
-
-        // Flush headers immediately to establish SSE connection
-        res.status(200).flushHeaders();
-
-        // Send initial SSE comment to keep connection alive and confirm establishment
-        res.write(': SSE stream established\n\n');
-
-        // Store this connection for sending notifications later
-        this.sseGetConnections.set(sessionId, res);
-        console.error(`[HTTP] 📡 SSE connection stored (total: ${this.sseGetConnections.size})`);
-
-        // Handle client disconnect
-        req.on('close', () => {
-          console.error(`[HTTP] 📡 SSE connection closed (session: ${sessionId})`);
-          this.sseGetConnections.delete(sessionId);
-        });
-
-        // Keep connection alive with periodic heartbeat
-        const heartbeatInterval = setInterval(() => {
-          if (res.writableEnded) {
-            clearInterval(heartbeatInterval);
-            return;
-          }
-          try {
-            res.write(': heartbeat\n\n');
-          } catch (error) {
-            console.error(`[HTTP] ❌ Heartbeat failed for session ${sessionId}:`, error);
-            clearInterval(heartbeatInterval);
-            this.sseGetConnections.delete(sessionId);
-          }
-        }, 30000); // 30 second heartbeat
-
-        // Clean up heartbeat on connection close
-        res.on('close', () => {
-          clearInterval(heartbeatInterval);
-        });
-
-        return; // Keep connection open
-      }
-
-      // For non-SSE requests (browsers, debugging, discovery)
-      // Check if Accept header is present but doesn't include text/event-stream
-      // Per MCP spec, return 406 Not Acceptable
-      if (acceptHeader && !acceptHeader.includes('*/*') && !acceptHeader.includes('application/json')) {
-        console.error(`[HTTP] 📋 Returning 406 - Accept header doesn't include text/event-stream or application/json`);
-        res.set({
-          'Content-Type': 'application/json',
-          'X-MCP-Transport': 'streamable-http',
-          'X-MCP-Protocol-Version': '2025-03-26'
-        });
-        return res.status(406).json({
-          jsonrpc: '2.0',
-          error: {
-            code: -32000,
-            message: 'Not Acceptable. Accept header must include text/event-stream for GET requests.',
-            data: {
-              transport: 'streamable-http',
-              protocol: '2025-03-26',
-              hint: 'Use Accept: text/event-stream for SSE, or POST for JSON-RPC requests'
-            }
-          },
-          id: null
-        });
-      }
-
-      // Return JSON with explicit transport information (for browsers, discovery)
-      const responseBody = JSON.stringify({
-        server: 'instantly-mcp',
-        version: '1.2.0',
-        transport: 'streamable-http',
-        protocol: '2025-03-26',
-        tools: TOOLS_DEFINITION.length,
-        endpoints: {
-          'mcp_post': apiKey ? `/mcp/${apiKey}` : '/mcp',
-          'mcp_sse': apiKey ? `/mcp/${apiKey}` : '/mcp',
-          'health': '/health',
-          'info': '/info'
-        },
-        auth: {
-          required: true,
-          methods: ['path_parameter', 'header'],
-          note: 'Use POST to /mcp/{API_KEY} for MCP communication, GET for SSE notifications'
-        },
-        status: 'ready'
-      });
-
-      // Set explicit headers for transport detection
-      res.set({
-        'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(responseBody).toString(),
-        'X-MCP-Transport': 'streamable-http',
-        'X-MCP-Protocol-Version': '2025-03-26'
-      });
-
-      res.send(responseBody);
-    });
+    // NOTE: GET /mcp/:apiKey? is now handled by app.all('/mcp/:apiKey?') above
+    // The SDK's StreamableHTTPServerTransport.handleRequest() automatically handles:
+    // - GET with Accept: text/event-stream → SSE stream for notifications
+    // - GET without SSE Accept → 405 Method Not Allowed (per MCP spec)
+    // - POST → JSON-RPC processing
 
     // POST /messages endpoint for SSE transport (Claude.ai proxy compatibility)
     // ENHANCED: Handle requests even without SSE session (SSE handshake sometimes fails)
@@ -1047,9 +802,9 @@ export class StreamingHttpTransport {
         });
       });
 
-      // Session cleanup interval
+      // Rate limit cleanup interval (sessions are stateless now)
       setInterval(() => {
-        this.cleanupSessions();
+        this.cleanupRateLimits();
       }, 60000); // Clean up every minute
     });
   }
@@ -1057,21 +812,12 @@ export class StreamingHttpTransport {
 
 
   /**
-   * Clean up inactive sessions and rate limit entries
+   * Clean up expired rate limit entries
+   * NOTE: Session cleanup removed - we now use stateless mode (Context7-style)
    */
-  private cleanupSessions(): void {
+  private cleanupRateLimits(): void {
     const now = Date.now();
-    const sessionTimeout = 30 * 60 * 1000; // 30 minutes
-    let cleanedSessions = 0;
     let cleanedRateLimits = 0;
-
-    // Clean up inactive sessions
-    for (const [sessionId, session] of this.activeSessions.entries()) {
-      if (now - session.lastActivity > sessionTimeout) {
-        this.activeSessions.delete(sessionId);
-        cleanedSessions++;
-      }
-    }
 
     // Clean up expired rate limit entries
     for (const [ip, entry] of this.rateLimitMap.entries()) {
@@ -1081,29 +827,9 @@ export class StreamingHttpTransport {
       }
     }
 
-    if (cleanedSessions > 0 || cleanedRateLimits > 0) {
-      console.error(`[HTTP] 🧹 Cleanup: ${cleanedSessions} sessions, ${cleanedRateLimits} rate limits - Active: ${this.activeSessions.size} sessions, ${this.rateLimitMap.size} rate limits`);
+    if (cleanedRateLimits > 0) {
+      console.error(`[HTTP] 🧹 Cleanup: ${cleanedRateLimits} rate limits - Active: ${this.rateLimitMap.size} rate limits`);
     }
-  }
-
-
-
-  /**
-   * Set request handlers (to be called by main server)
-   */
-  setRequestHandlers(handlers: {
-    toolsList: (id: any) => Promise<any>;
-    toolCall: (params: any, id: any) => Promise<any>;
-  }): void {
-    this.requestHandlers = handlers;
-  }
-
-  /**
-   * Get the active transports map (for debugging/monitoring)
-   * In stateful mode, we maintain multiple transport instances per session
-   */
-  getTransports() {
-    return this.transports;
   }
 
   /**
