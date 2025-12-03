@@ -238,11 +238,11 @@ export class StreamingHttpTransport {
           sse: '2024-11-05'
         },
         timestamp: new Date().toISOString(),
-        mode: 'stateless', // Context7-style: new transport per request
+        mode: 'stateless', // POST-only: new transport per request (n8n/Supabase pattern)
         sseSessions: this.sseTransports.size, // Legacy SSE sessions
         endpoints: {
-          mcp: '/mcp (all methods handled by SDK)',
-          'mcp-with-key': '/mcp/:apiKey',
+          mcp: '/mcp (POST only - stateless mode)',
+          'mcp-with-key': '/mcp/:apiKey (POST only)',
           messages: '/messages (POST for legacy SSE transport)',
           health: '/health',
           info: '/info',
@@ -300,15 +300,40 @@ export class StreamingHttpTransport {
     });
 
     // ============================================================================
-    // MAIN MCP ENDPOINT - Context7-style Stateless Transport (Cursor Compatible)
+    // MAIN MCP ENDPOINT - Stateless Transport (POST-only, like n8n/Supabase/Vercel)
     // ============================================================================
-    // This follows the pattern used by Context7 and Firecrawl MCP servers:
-    // - Single handler for ALL methods (GET, POST, DELETE, OPTIONS)
-    // - Stateless transport: new transport created per request
-    // - Let SDK's handleRequest() manage GET SSE vs POST JSON-RPC automatically
+    // CRITICAL: In stateless mode, only POST requests are valid.
+    // GET requests for SSE streams require session management (stateful mode).
+    // All working stateless MCP servers (n8n, Supabase, Vercel AI, Backstage)
+    // use POST-only handlers. Using app.all() causes issues with clients like
+    // Cursor that may probe with GET requests.
     // ============================================================================
 
-    this.app.all('/mcp/:apiKey?', async (req: express.Request, res: express.Response) => {
+    // Handle GET requests - return 405 Method Not Allowed for stateless mode
+    // This prevents clients from getting stuck waiting for SSE streams
+    this.app.get('/mcp/:apiKey?', (req: express.Request, res: express.Response) => {
+      console.error(`[HTTP] ⚠️ GET request to /mcp - returning 405 (stateless mode)`);
+      console.error(`[HTTP] Path: ${req.path}`);
+      console.error(`[HTTP] User-Agent: ${req.headers['user-agent'] || 'unknown'}`);
+
+      res.setHeader('Allow', 'POST');
+      res.status(405).json({
+        jsonrpc: '2.0',
+        error: {
+          code: -32000,
+          message: 'Method Not Allowed: This MCP server operates in stateless mode. Use POST to send JSON-RPC messages.',
+          data: {
+            allowedMethods: ['POST'],
+            transport: 'streamable-http-stateless',
+            documentation: 'https://github.com/Instantly-ai/instantly-mcp'
+          }
+        },
+        id: null,
+      });
+    });
+
+    // Handle POST requests - the main MCP JSON-RPC endpoint
+    this.app.post('/mcp/:apiKey?', async (req: express.Request, res: express.Response) => {
       try {
         // Extract API key from URL path or headers
         let apiKey = req.params.apiKey ||
@@ -316,13 +341,12 @@ export class StreamingHttpTransport {
                      req.headers['x-instantly-api-key'] as string ||
                      req.headers['x-api-key'] as string;
 
-        console.error(`[HTTP] ========== MCP REQUEST ==========`);
-        console.error(`[HTTP] Method: ${req.method}`);
+        console.error(`[HTTP] ========== MCP POST REQUEST ==========`);
         console.error(`[HTTP] Path: ${req.path}`);
         console.error(`[HTTP] Accept: ${req.headers.accept || 'none'}`);
         console.error(`[HTTP] API Key: ${apiKey ? apiKey.substring(0, 20) + '...' : 'NONE'}`);
         console.error(`[HTTP] Body method: ${req.body?.method || 'N/A'}`);
-        console.error(`[HTTP] ====================================`);
+        console.error(`[HTTP] ========================================`);
 
         // Store API key for tool handlers
         if (apiKey) {
@@ -330,8 +354,8 @@ export class StreamingHttpTransport {
           (req as any).instantlyApiKey = apiKey;
         }
 
-        // Create a NEW stateless transport per request (Context7/Firecrawl pattern)
-        // This is the key insight: stateless mode + let SDK handle everything
+        // Create a NEW stateless transport per request (n8n/Supabase/Vercel pattern)
+        // This ensures complete isolation between requests
         const transport = new StreamableHTTPServerTransport({
           sessionIdGenerator: undefined, // Stateless mode - no session tracking
           enableJsonResponse: true,      // Return JSON for non-streaming responses
@@ -346,10 +370,7 @@ export class StreamingHttpTransport {
         // Connect server to this transport instance
         await this.server.connect(transport);
 
-        // Let the SDK handle EVERYTHING:
-        // - POST requests → JSON-RPC processing
-        // - GET with Accept: text/event-stream → SSE stream
-        // - DELETE → Session cleanup (returns 405 in stateless mode)
+        // Handle the POST request with JSON-RPC message
         await transport.handleRequest(req, res, req.body);
 
         console.error(`[HTTP] ✅ Request handled by SDK transport`);
