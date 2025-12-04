@@ -1052,13 +1052,17 @@ export async function executeToolDirectly(name: string, args: any, apiKey?: stri
 
       const accountResult = await makeInstantlyRequest(`/accounts/${args.email}`, {}, apiKey);
 
+      // Maintain response format compatibility for old tool names
+      // Original behavior: get_account_details returned 'account_details:', all others returned 'account:'
+      const responseKey = name === 'get_account_details' ? 'account_details' : 'account';
+
       return {
         content: [
           {
             type: 'text',
             text: JSON.stringify({
               success: true,
-              account: accountResult,
+              [responseKey]: accountResult,
               message: 'Account details retrieved successfully'
             }, null, 2)
           }
