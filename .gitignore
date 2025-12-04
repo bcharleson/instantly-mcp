@@ -7,8 +7,11 @@ npm-debug.log*
 
 # IDE and editor specific files
 .vscode/
-.claude/
 cursor/
+
+# Claude skills and development aids (local development only - DO NOT push to production)
+.claude/
+.claude/**
 
 # Cursor MCP testing configuration (contains API keys and local configs)
 .cursor/
