@@ -3,7 +3,7 @@
  * 
  * Tool definitions for account management operations.
  * Optimized for minimal context window overhead.
- * Total: 10 account tools (consolidated get_account_details + get_account_info)
+ * Total: 6 account tools
  */
 
 export const accountTools = [

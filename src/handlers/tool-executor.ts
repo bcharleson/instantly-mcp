@@ -1124,17 +1124,6 @@ export async function executeToolDirectly(name: string, args: any, apiKey?: stri
       };
     }
 
-    // Backward compatibility: route old tool names to manage_account_state
-    case 'pause_account': {
-      console.error('[Instantly MCP] ⏸️ pause_account (legacy) -> manage_account_state');
-      return executeToolDirectly('manage_account_state', { email: args.email, action: 'pause' }, apiKey);
-    }
-
-    case 'resume_account': {
-      console.error('[Instantly MCP] ▶️ resume_account (legacy) -> manage_account_state');
-      return executeToolDirectly('manage_account_state', { email: args.email, action: 'resume' }, apiKey);
-    }
-
     case 'create_account': {
       console.error('[Instantly MCP] ➕ Executing create_account...');
 
@@ -1210,22 +1199,6 @@ export async function executeToolDirectly(name: string, args: any, apiKey?: stri
           }
         ]
       };
-    }
-
-    // Backward compatibility: route legacy warmup/vitals tools to manage_account_state
-    case 'enable_warmup': {
-      console.error('[Instantly MCP] 🔥 enable_warmup (legacy) -> manage_account_state');
-      return executeToolDirectly('manage_account_state', { email: args.email, action: 'enable_warmup' }, apiKey);
-    }
-
-    case 'disable_warmup': {
-      console.error('[Instantly MCP] ❄️ disable_warmup (legacy) -> manage_account_state');
-      return executeToolDirectly('manage_account_state', { email: args.email, action: 'disable_warmup' }, apiKey);
-    }
-
-    case 'test_account_vitals': {
-      console.error('[Instantly MCP] 🩺 test_account_vitals (legacy) -> manage_account_state');
-      return executeToolDirectly('manage_account_state', { email: args.email, action: 'test_vitals' }, apiKey);
     }
 
     default:
