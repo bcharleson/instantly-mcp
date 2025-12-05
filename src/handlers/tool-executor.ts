@@ -1071,20 +1071,39 @@ export async function executeToolDirectly(name: string, args: any, apiKey?: stri
     }
 
     // Consolidated: manage_account_state (replaces pause/resume/warmup/vitals tools)
+    // Backward compatibility: route old tool names to consolidated handler
+    case 'pause_account':
+    case 'resume_account':
+    case 'enable_warmup':
+    case 'disable_warmup':
+    case 'test_account_vitals':
     case 'manage_account_state': {
+      // Map old tool names to actions for backward compatibility
+      let action = args?.action;
+      if (!action && name !== 'manage_account_state') {
+        const toolNameToAction: Record<string, string> = {
+          'pause_account': 'pause',
+          'resume_account': 'resume',
+          'enable_warmup': 'enable_warmup',
+          'disable_warmup': 'disable_warmup',
+          'test_account_vitals': 'test_vitals'
+        };
+        action = toolNameToAction[name];
+        console.error(`[Instantly MCP] 🔄 Backward compatibility: ${name} -> manage_account_state(action: ${action})`);
+      }
       console.error('[Instantly MCP] 🔧 Executing manage_account_state...');
 
       if (!args.email) {
         throw new McpError(ErrorCode.InvalidParams, 'Email is required');
       }
-      if (!args.action) {
+      if (!action) {
         throw new McpError(ErrorCode.InvalidParams, 'Action is required (pause, resume, enable_warmup, disable_warmup, test_vitals)');
       }
 
       let result: any;
       let message: string;
 
-      switch (args.action) {
+      switch (action) {
         case 'pause':
           result = await makeInstantlyRequest(`/accounts/${args.email}/pause`, { method: 'POST' }, apiKey);
           message = `Account ${args.email} paused successfully`;
@@ -1106,7 +1125,7 @@ export async function executeToolDirectly(name: string, args: any, apiKey?: stri
           message = `Account vitals tested for ${args.email}`;
           break;
         default:
-          throw new McpError(ErrorCode.InvalidParams, `Unknown action: ${args.action}. Valid: pause, resume, enable_warmup, disable_warmup, test_vitals`);
+          throw new McpError(ErrorCode.InvalidParams, `Unknown action: ${action}. Valid: pause, resume, enable_warmup, disable_warmup, test_vitals`);
       }
 
       return {
@@ -1115,7 +1134,7 @@ export async function executeToolDirectly(name: string, args: any, apiKey?: stri
             type: 'text',
             text: JSON.stringify({
               success: true,
-              action: args.action,
+              action,
               result,
               message
             }, null, 2)
