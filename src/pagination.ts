@@ -175,7 +175,7 @@ export async function getAllDataWithPagination<T>(
   let startingAfter: string | undefined = undefined;
   let offset = 0;
 
-  console.log(`🔄 Starting complete pagination retrieval (max ${maxPages} pages, limit ${defaultLimit})...`);
+  console.error(`🔄 Starting complete pagination retrieval (max ${maxPages} pages, limit ${defaultLimit})...`);
 
   while (pageCount < maxPages) {
     try {
@@ -194,7 +194,7 @@ export async function getAllDataWithPagination<T>(
         }
       }
 
-      console.log(`📄 Fetching page ${pageCount + 1}...`, pageParams);
+      console.error(`📄 Fetching page ${pageCount + 1}...`, pageParams);
 
       // Make the API call
       const response = await apiCall(pageParams);
@@ -220,7 +220,7 @@ export async function getAllDataWithPagination<T>(
       // Add items to our collection
       if (items.length > 0) {
         allItems.push(...items);
-        console.log(`✅ Retrieved ${items.length} items (total: ${allItems.length})`);
+        console.error(`✅ Retrieved ${items.length} items (total: ${allItems.length})`);
 
         // Call progress callback if provided
         if (progressCallback) {
@@ -232,14 +232,14 @@ export async function getAllDataWithPagination<T>(
       if (useOffsetPagination) {
         // For offset pagination: stop if we got fewer items than requested
         if (items.length < defaultLimit) {
-          console.log(`🏁 Reached end of data (got ${items.length} < ${defaultLimit})`);
+          console.error(`🏁 Reached end of data (got ${items.length} < ${defaultLimit})`);
           break;
         }
         offset += defaultLimit;
       } else {
         // For token pagination: stop if no next_starting_after or empty items
         if (!nextStartingAfter || items.length === 0) {
-          console.log(`🏁 Reached end of data (next_starting_after: ${nextStartingAfter}, items: ${items.length})`);
+          console.error(`🏁 Reached end of data (next_starting_after: ${nextStartingAfter}, items: ${items.length})`);
           break;
         }
         startingAfter = nextStartingAfter;
@@ -259,7 +259,7 @@ export async function getAllDataWithPagination<T>(
     }
   }
 
-  console.log(`✅ Pagination complete: ${allItems.length} total items retrieved in ${pageCount} pages`);
+  console.error(`✅ Pagination complete: ${allItems.length} total items retrieved in ${pageCount} pages`);
   return allItems;
 }
 
@@ -295,7 +295,7 @@ export async function getInstantlyDataWithPagination<T>(
     maxPages: 20,
     defaultLimit: 100,
     progressCallback: (current, total) => {
-      console.log(`📊 Progress: ${current} items retrieved...`);
+      console.error(`📊 Progress: ${current} items retrieved...`);
     },
     ...options
   });
