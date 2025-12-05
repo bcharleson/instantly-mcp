@@ -11,7 +11,6 @@ export const analyticsTools = [
     name: 'get_campaign_analytics',
     title: 'Campaign Analytics',
     description: 'Get campaign metrics: opens, clicks, replies, bounces. Filter by campaign(s) and dates.',
-    annotations: { readOnlyHint: true },
     inputSchema: {
       type: 'object',
       properties: {
@@ -28,7 +27,6 @@ export const analyticsTools = [
     name: 'get_daily_campaign_analytics',
     title: 'Daily Analytics',
     description: 'Day-by-day campaign performance analytics',
-    annotations: { readOnlyHint: true },
     inputSchema: {
       type: 'object',
       properties: {
@@ -44,7 +42,6 @@ export const analyticsTools = [
     name: 'get_warmup_analytics',
     title: 'Warmup Analytics',
     description: 'Get warmup metrics for account(s)',
-    annotations: { readOnlyHint: true },
     inputSchema: {
       type: 'object',
       properties: {

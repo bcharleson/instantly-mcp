@@ -76,9 +76,9 @@ export function registerMcpHandlers(server: Server, apiKey?: string): void {
     console.error('[Instantly MCP] 🎨 Icons loaded:', icons.length > 0 ? `✅ ${icons.length} icon(s)` : '❌ Missing');
 
     // Enhanced initialization response matching HTTP transport
-    // Updated to 2025-06-18 for latest MCP protocol features
+    // Using 2024-11-05 for maximum client compatibility (Cursor, Claude, n8n)
     const initResponse = {
-      protocolVersion: '2025-06-18',
+      protocolVersion: '2024-11-05',
       capabilities: {
         tools: {
           listChanged: true,

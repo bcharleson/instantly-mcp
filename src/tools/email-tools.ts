@@ -11,7 +11,6 @@ export const emailTools = [
     name: 'list_emails',
     title: 'List Emails',
     description: 'List emails with pagination. Filter by campaign, account, type, or status.',
-    annotations: { readOnlyHint: true },
     inputSchema: {
       type: 'object',
       properties: {
@@ -40,7 +39,6 @@ export const emailTools = [
     name: 'get_email',
     title: 'Get Email',
     description: 'Get email details by ID',
-    annotations: { readOnlyHint: true },
     inputSchema: {
       type: 'object',
       properties: {
@@ -54,7 +52,6 @@ export const emailTools = [
     name: 'reply_to_email',
     title: 'Reply to Email',
     description: '🚨 SENDS REAL EMAIL! Confirm with user first. Cannot undo!',
-    annotations: { destructiveHint: true, confirmationRequiredHint: true },
     inputSchema: {
       type: 'object',
       properties: {
@@ -77,7 +74,6 @@ export const emailTools = [
     name: 'count_unread_emails',
     title: 'Count Unread',
     description: 'Count unread emails in inbox',
-    annotations: { readOnlyHint: true },
     inputSchema: {
       type: 'object',
       properties: {}
@@ -88,7 +84,6 @@ export const emailTools = [
     name: 'verify_email',
     title: 'Verify Email',
     description: 'Verify email deliverability (5-45s). Returns status, score, flags.',
-    annotations: { readOnlyHint: true },
     inputSchema: {
       type: 'object',
       properties: {

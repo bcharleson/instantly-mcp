@@ -11,7 +11,6 @@ export const leadTools = [
     name: 'list_leads',
     title: 'List Leads',
     description: 'List leads with pagination. Filter by campaign, list, search, or status.',
-    annotations: { readOnlyHint: true },
     inputSchema: {
       type: 'object',
       properties: {
@@ -34,7 +33,6 @@ export const leadTools = [
     name: 'get_lead',
     title: 'Get Lead',
     description: 'Get lead details by ID',
-    annotations: { readOnlyHint: true },
     inputSchema: {
       type: 'object',
       properties: {
@@ -48,7 +46,6 @@ export const leadTools = [
     name: 'create_lead',
     title: 'Create Lead',
     description: 'Create lead with custom variables. Use skip_if_in_campaign to prevent duplicates.',
-    annotations: { destructiveHint: false },
     inputSchema: {
       type: 'object',
       properties: {
@@ -78,7 +75,6 @@ export const leadTools = [
     name: 'update_lead',
     title: 'Update Lead',
     description: 'Update lead (partial). ⚠️ custom_variables replaces entire object.',
-    annotations: { destructiveHint: false },
     inputSchema: {
       type: 'object',
       properties: {
@@ -102,7 +98,6 @@ export const leadTools = [
     name: 'list_lead_lists',
     title: 'List Lead Lists',
     description: 'List lead lists with pagination and search',
-    annotations: { readOnlyHint: true },
     inputSchema: {
       type: 'object',
       properties: {
@@ -118,7 +113,6 @@ export const leadTools = [
     name: 'create_lead_list',
     title: 'Create Lead List',
     description: 'Create list. Set has_enrichment_task=true for auto-enrich.',
-    annotations: { destructiveHint: false },
     inputSchema: {
       type: 'object',
       properties: {
@@ -134,7 +128,6 @@ export const leadTools = [
     name: 'update_lead_list',
     title: 'Update Lead List',
     description: 'Update list name, enrichment, or owner',
-    annotations: { destructiveHint: false },
     inputSchema: {
       type: 'object',
       properties: {
@@ -151,7 +144,6 @@ export const leadTools = [
     name: 'get_verification_stats_for_lead_list',
     title: 'Verification Stats',
     description: 'Get email verification stats for list',
-    annotations: { readOnlyHint: true },
     inputSchema: {
       type: 'object',
       properties: {
@@ -165,7 +157,6 @@ export const leadTools = [
     name: 'add_leads_to_campaign_or_list_bulk',
     title: 'Bulk Add Leads',
     description: 'Add up to 1,000 leads. 10-100x faster than create_lead.',
-    annotations: { destructiveHint: false },
     inputSchema: {
       type: 'object',
       properties: {
@@ -206,7 +197,6 @@ export const leadTools = [
     name: 'delete_lead',
     title: 'Delete Lead',
     description: '🗑️ PERMANENTLY delete. CANNOT UNDO!',
-    annotations: { destructiveHint: true, confirmationRequiredHint: true },
     inputSchema: {
       type: 'object',
       properties: {
@@ -220,7 +210,6 @@ export const leadTools = [
     name: 'move_leads_to_campaign_or_list',
     title: 'Move/Copy Leads',
     description: 'Move or copy leads between campaigns/lists (background job)',
-    annotations: { destructiveHint: false },
     inputSchema: {
       type: 'object',
       properties: {

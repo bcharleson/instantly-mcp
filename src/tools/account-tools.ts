@@ -11,7 +11,6 @@ export const accountTools = [
     name: 'list_accounts',
     title: 'List Accounts',
     description: 'List email accounts with pagination. Filter by status, provider, or tags.',
-    annotations: { readOnlyHint: true },
     inputSchema: {
       type: 'object',
       properties: {
@@ -29,7 +28,6 @@ export const accountTools = [
     name: 'get_account',
     title: 'Get Account',
     description: 'Get account details, warmup status, and campaign eligibility by email',
-    annotations: { readOnlyHint: true },
     inputSchema: {
       type: 'object',
       properties: {
@@ -43,7 +41,6 @@ export const accountTools = [
     name: 'create_account',
     title: 'Create Account',
     description: 'Create email account with IMAP/SMTP credentials',
-    annotations: { destructiveHint: false },
     inputSchema: {
       type: 'object',
       properties: {
@@ -68,7 +65,6 @@ export const accountTools = [
     name: 'update_account',
     title: 'Update Account',
     description: 'Update account settings (partial). Supports name, warmup, daily_limit, sending_gap, tracking_domain.',
-    annotations: { destructiveHint: false },
     inputSchema: {
       type: 'object',
       properties: {
@@ -112,7 +108,6 @@ export const accountTools = [
     name: 'manage_account_state',
     title: 'Manage Account State',
     description: 'Pause, resume, enable/disable warmup, or test account vitals',
-    annotations: { destructiveHint: false },
     inputSchema: {
       type: 'object',
       properties: {
@@ -131,7 +126,6 @@ export const accountTools = [
     name: 'delete_account',
     title: 'Delete Account',
     description: '🚨 PERMANENTLY delete account. CANNOT UNDO. All data lost forever!',
-    annotations: { destructiveHint: true, confirmationRequiredHint: true },
     inputSchema: {
       type: 'object',
       properties: {

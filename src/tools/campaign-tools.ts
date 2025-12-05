@@ -13,7 +13,6 @@ export const campaignTools = [
     name: 'create_campaign',
     title: 'Create Campaign',
     description: 'Create email campaign. Two-step: 1) Call with name/subject/body to discover accounts, 2) Call again with email_list. Use sequence_steps for multi-step sequences.',
-    annotations: { destructiveHint: false },
     inputSchema: {
       type: 'object',
       properties: {
@@ -43,7 +42,6 @@ export const campaignTools = [
     name: 'list_campaigns',
     title: 'List Campaigns',
     description: 'List campaigns with pagination. Filter by name search or tags.',
-    annotations: { readOnlyHint: true },
     inputSchema: {
       type: 'object',
       properties: {
@@ -59,7 +57,6 @@ export const campaignTools = [
     name: 'get_campaign',
     title: 'Get Campaign',
     description: 'Get campaign details: config, sequences, schedules, sender accounts, tracking, status',
-    annotations: { readOnlyHint: true },
     inputSchema: {
       type: 'object',
       properties: {
@@ -73,7 +70,6 @@ export const campaignTools = [
     name: 'update_campaign',
     title: 'Update Campaign',
     description: 'Update campaign settings (partial). Common: name, sequences, tracking, limits, email_list.',
-    annotations: { destructiveHint: false },
     inputSchema: {
       type: 'object',
       properties: {
@@ -112,7 +108,6 @@ export const campaignTools = [
     name: 'activate_campaign',
     title: 'Activate Campaign',
     description: 'Start sending. Prerequisites: accounts, leads, sequences, schedule.',
-    annotations: { destructiveHint: false },
     inputSchema: {
       type: 'object',
       properties: {
@@ -126,7 +121,6 @@ export const campaignTools = [
     name: 'pause_campaign',
     title: 'Pause Campaign',
     description: 'Stop sending (leads remain). Use activate_campaign to resume.',
-    annotations: { destructiveHint: false },
     inputSchema: {
       type: 'object',
       properties: {
