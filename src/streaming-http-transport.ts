@@ -108,7 +108,7 @@ export class StreamingHttpTransport {
         'Server': 'instantly-mcp/1.2.0',
         // MCP Transport detection headers - helps Cursor/Augment identify correct transport
         'X-MCP-Transport': 'streamable-http',
-        'X-MCP-Protocol-Version': '2025-11-25'
+        'X-MCP-Protocol-Version': '2025-03-26'
       });
       next();
     });
@@ -201,9 +201,9 @@ export class StreamingHttpTransport {
     });
 
     // MCP Protocol Version header (required by spec)
-    // Must match the protocolVersion returned in Initialize response
+    // Updated to 2025-03-26 for Streamable HTTP transport (official MCP spec version)
     this.app.use((req, res, next) => {
-      res.setHeader('mcp-protocol-version', '2025-11-25');
+      res.setHeader('mcp-protocol-version', '2025-03-26');
       next();
     });
   }

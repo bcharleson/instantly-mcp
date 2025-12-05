@@ -75,21 +75,10 @@ export function registerMcpHandlers(server: Server, apiKey?: string): void {
     const icons = loadInstantlyIcons();
     console.error('[Instantly MCP] 🎨 Icons loaded:', icons.length > 0 ? `✅ ${icons.length} icon(s)` : '❌ Missing');
 
-    // MCP Protocol Version Negotiation (per MCP spec)
-    // Supported versions: 2024-11-05 (legacy SSE), 2025-03-26 (Streamable HTTP), 2025-11-25 (latest)
-    const SUPPORTED_PROTOCOL_VERSIONS = ['2024-11-05', '2025-03-26', '2025-11-25'];
-    const LATEST_PROTOCOL_VERSION = '2025-11-25'; // Latest stable - must match mcp-protocol-version header
-
-    const requestedVersion = request.params?.protocolVersion || LATEST_PROTOCOL_VERSION;
-    const protocolVersion = SUPPORTED_PROTOCOL_VERSIONS.includes(requestedVersion)
-      ? requestedVersion
-      : LATEST_PROTOCOL_VERSION;
-
-    console.error(`[Instantly MCP] 📡 Protocol version: requested=${requestedVersion}, using=${protocolVersion}`);
-
     // Enhanced initialization response matching HTTP transport
+    // Updated to 2025-06-18 for latest MCP protocol features
     const initResponse = {
-      protocolVersion,
+      protocolVersion: '2025-06-18',
       capabilities: {
         tools: {
           listChanged: true,
