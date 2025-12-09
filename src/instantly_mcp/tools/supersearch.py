@@ -47,20 +47,30 @@ async def search_supersearch_leads(params: SearchSuperSearchLeadsInput) -> str:
     - Find sales leaders in California: department=["Sales"], level=["Director-Level", "VP-Level"], locations.include=[{state: "California", country: "United States"}]
     """
     client = get_client()
-    
+
     body: dict[str, Any] = {
         "search_filters": params.search_filters.model_dump(exclude_none=True),
     }
-    
+
+    # API uses resource_id for both lists and campaigns
     if params.list_id:
-        body["list_id"] = params.list_id
+        body["resource_id"] = params.list_id
+        body["resource_type"] = 2  # 2 = List
     if params.campaign_id:
-        body["campaign_id"] = params.campaign_id
+        body["resource_id"] = params.campaign_id
+        body["resource_type"] = 1  # 1 = Campaign
+
+    # Handle enrichment types - API expects top-level boolean flags
     if params.enrichment_types:
-        body["enrichment_types"] = params.enrichment_types
+        for etype in params.enrichment_types:
+            body[etype] = True
+    else:
+        # Default to work email enrichment
+        body["work_email_enrichment"] = True
+
     if params.limit:
         body["limit"] = params.limit
-    
+
     result = await client.post("/supersearch-enrichment/enrich-leads-from-supersearch", json=body)
     
     # Add guidance for next steps
