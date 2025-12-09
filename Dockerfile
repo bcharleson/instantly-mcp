@@ -1,73 +1,31 @@
-# Production Dockerfile for DigitalOcean App Platform
-FROM node:18-alpine AS builder
+FROM python:3.11-slim
 
-# Install build dependencies
-RUN apk add --no-cache python3 make g++
-
-# Set working directory
 WORKDIR /app
 
-# Copy package files only
-COPY package*.json ./
+# Install curl for healthcheck
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
-# Clean install with npm (ignore yarn.lock to avoid conflicts)
-RUN rm -f yarn.lock && \
-    npm cache clean --force && \
-    npm install
+# Copy requirements first for layer caching
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy source files
-COPY tsconfig.json ./
-COPY src/ ./src/
+# Copy source code
+COPY pyproject.toml setup.py ./
+COPY src/ src/
 
-# Build with TypeScript (allow errors but ensure dist is created)
-RUN npx tsc || npx tsc --noEmitOnError false || true
+# Install the package
+RUN pip install --no-cache-dir .
 
-# Verify dist was created
-RUN test -d dist || (echo "ERROR: dist directory not created" && exit 1)
-
-# Production stage
-FROM node:18-alpine
-
-# Set working directory
-WORKDIR /app
-
-# Copy package files
-COPY package*.json ./
-
-# Install production dependencies only
-RUN npm install --production
-
-# Copy built application from builder
-COPY --from=builder /app/dist ./dist
-
-# Copy other necessary files
-COPY README.md manifest.json ./
-
-# Install curl for health checks
-RUN apk add --no-cache curl
-
-# Create non-root user
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S instantly -u 1001
-
-# Set ownership
-RUN chown -R instantly:nodejs /app
-
-# Switch to non-root user
-USER instantly
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8080/health || exit 1
-
-# Expose port
-EXPOSE 8080
-
-# Environment
-ENV NODE_ENV=production
-ENV TRANSPORT_MODE=http
-ENV PORT=8080
+# Default port
+ENV PORT=8000
 ENV HOST=0.0.0.0
 
-# Start application
-CMD ["node", "dist/index.js"]
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -sf http://localhost:${PORT}/mcp || exit 1
+
+# Run HTTP server
+CMD python -m instantly_mcp.server --transport http --host 0.0.0.0 --port $PORT
+
