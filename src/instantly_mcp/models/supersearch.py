@@ -25,10 +25,16 @@ class IncludeExcludeFilter(BaseModel):
 
 class LocationItem(BaseModel):
     """Single location specification."""
-    model_config = ConfigDict(extra="ignore")
-    
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
     # Either use place_id OR city/state/country
-    place_id: Optional[str] = Field(default=None, description="Google Place ID")
+    place_id: Optional[str] = Field(
+        default=None,
+        alias="placeId",
+        serialization_alias="placeId",
+        description="Google Place ID"
+    )
+    label: Optional[str] = Field(default=None, description="Display label for the location")
     city: Optional[str] = Field(default=None)
     state: Optional[str] = Field(default=None)
     country: Optional[str] = Field(default=None)

@@ -48,8 +48,11 @@ async def search_supersearch_leads(params: SearchSuperSearchLeadsInput) -> str:
     """
     client = get_client()
 
+    # Build search_filters - serialize with aliases for camelCase fields
+    search_filters = params.search_filters.model_dump(exclude_none=True, by_alias=True)
+
     body: dict[str, Any] = {
-        "search_filters": params.search_filters.model_dump(exclude_none=True, by_alias=True),
+        "search_filters": search_filters,
     }
 
     # API uses resource_id for both lists and campaigns
@@ -71,7 +74,14 @@ async def search_supersearch_leads(params: SearchSuperSearchLeadsInput) -> str:
     if params.limit:
         body["limit"] = params.limit
 
-    result = await client.post("/supersearch-enrichment/enrich-leads-from-supersearch", json=body)
+    try:
+        result = await client.post("/supersearch-enrichment/enrich-leads-from-supersearch", json=body)
+    except Exception as e:
+        # Return debug info on error
+        return json.dumps({
+            "error": str(e),
+            "debug_payload": body
+        }, indent=2)
     
     # Add guidance for next steps
     if isinstance(result, dict):
