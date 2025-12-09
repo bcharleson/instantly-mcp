@@ -5,8 +5,6 @@ Provides an ASGI wrapper for FastMCP that supports:
 - URL-based authentication: /mcp/YOUR_API_KEY
 - Header authentication: Authorization: YOUR_API_KEY (no Bearer prefix required)
 - Custom header: x-instantly-api-key
-
-Matches the authentication patterns from the TypeScript version.
 """
 
 import json
