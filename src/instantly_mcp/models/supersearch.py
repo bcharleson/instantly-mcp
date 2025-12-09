@@ -45,18 +45,18 @@ class LocationFilter(BaseModel):
 class SuperSearchFilters(BaseModel):
     """
     Filters for SuperSearch lead discovery.
-    
+
     Use these to define your Ideal Customer Profile (ICP).
     All filters are optional - combine as needed.
     """
-    model_config = ConfigDict(extra="ignore")
-    
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
     # Location
     locations: Optional[LocationFilter] = Field(
         default=None,
         description="Filter by location (city/state/country or place_id)"
     )
-    
+
     # Job-related
     title: Optional[IncludeExcludeFilter] = Field(
         default=None,
@@ -70,10 +70,12 @@ class SuperSearchFilters(BaseModel):
         default=None,
         description="Seniority levels: C-Level, VP-Level, Director-Level, Manager-Level, Staff, Entry-Level"
     )
-    
+
     # Company-related
     company_name: Optional[IncludeExcludeFilter] = Field(
         default=None,
+        alias="companyName",
+        serialization_alias="companyName",
         description="Company names to include/exclude"
     )
     industry: Optional[IncludeExcludeFilter] = Field(
@@ -82,6 +84,8 @@ class SuperSearchFilters(BaseModel):
     )
     employee_count: Optional[list[str]] = Field(
         default=None,
+        alias="employeeCount",
+        serialization_alias="employeeCount",
         description="Company size ranges: '0 - 25', '25 - 100', '100 - 500', '500 - 1000', '1000+'"
     )
     revenue: Optional[list[str]] = Field(
@@ -92,18 +96,24 @@ class SuperSearchFilters(BaseModel):
         default=None,
         description="Specific company domains to search"
     )
-    
+
     # Advanced
     look_alike: Optional[str] = Field(
         default=None,
+        alias="lookAlike",
+        serialization_alias="lookAlike",
         description="Find companies similar to this domain"
     )
     keyword_filter: Optional[IncludeExcludeFilter] = Field(
         default=None,
+        alias="keywordFilter",
+        serialization_alias="keywordFilter",
         description="Keywords to include/exclude in company descriptions"
     )
     funding_type: Optional[list[str]] = Field(
         default=None,
+        alias="fundingType",
+        serialization_alias="fundingType",
         description="Funding stages: angel, seed, series_a, series_b, series_c, series_d, series_e+"
     )
     news: Optional[list[str]] = Field(

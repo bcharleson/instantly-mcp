@@ -49,7 +49,7 @@ async def search_supersearch_leads(params: SearchSuperSearchLeadsInput) -> str:
     client = get_client()
 
     body: dict[str, Any] = {
-        "search_filters": params.search_filters.model_dump(exclude_none=True),
+        "search_filters": params.search_filters.model_dump(exclude_none=True, by_alias=True),
     }
 
     # API uses resource_id for both lists and campaigns
