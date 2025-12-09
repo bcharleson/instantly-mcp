@@ -14,7 +14,7 @@ CATEGORY_MAP: dict[str, list[Callable]] = {}
 
 def get_available_categories() -> list[str]:
     """Get list of available tool categories."""
-    return ["accounts", "campaigns", "leads", "emails", "analytics", "background_jobs"]
+    return ["accounts", "campaigns", "leads", "emails", "analytics", "background_jobs", "supersearch"]
 
 
 def is_lazy_loading_enabled() -> bool:
@@ -62,6 +62,9 @@ def load_tools_for_category(category: str) -> list[Callable]:
     elif category == "background_jobs":
         from .background_jobs import BACKGROUND_JOB_TOOLS
         return BACKGROUND_JOB_TOOLS
+    elif category == "supersearch":
+        from .supersearch import SUPERSEARCH_TOOLS
+        return SUPERSEARCH_TOOLS
     return []
 
 
