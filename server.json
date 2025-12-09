@@ -1,0 +1,36 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+  "name": "io.github.instantly-ai/instantly-mcp",
+  "title": "Instantly.ai Email Automation",
+  "description": "A lightweight, robust MCP server for Instantly.ai V2 API - manage email accounts, campaigns, leads, and analytics with 38 tools across 6 categories",
+  "repository": {
+    "url": "https://github.com/Instantly-ai/instantly-mcp",
+    "source": "github"
+  },
+  "version": "1.0.0",
+  "packages": [
+    {
+      "registryType": "pypi",
+      "identifier": "instantly-mcp",
+      "version": "1.0.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "INSTANTLY_API_KEY",
+          "description": "Your Instantly.ai API key (get it from app.instantly.ai/app/settings/integrations)",
+          "isRequired": true,
+          "isSecret": true
+        },
+        {
+          "name": "TOOL_CATEGORIES",
+          "description": "Comma-separated list of tool categories to load (accounts, campaigns, leads, emails, analytics, background_jobs). Defaults to all.",
+          "isRequired": false,
+          "isSecret": false
+        }
+      ]
+    }
+  ]
+}
+

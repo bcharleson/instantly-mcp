@@ -2,6 +2,8 @@
 
 A lightweight, robust Model Context Protocol (MCP) server for the **Instantly.ai V2 API**, built with FastMCP.
 
+<!-- mcp-name: io.github.instantly-ai/instantly-mcp -->
+
 ## Features
 
 - **38 tools** across 6 categories (accounts, campaigns, leads, emails, analytics, background_jobs)
