@@ -1,96 +1,86 @@
-node_modules/
+# ===== Python =====
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
 dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+.venv/
+ENV/
+env/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# Linting/Formatting
+.ruff_cache/
+.mypy_cache/
+
+# ===== Environment & Secrets =====
 .env
-.DS_Store
-*.log
-npm-debug.log*
+.env.*
+!.env.example
+*api-key*
+*API-KEY*
+*secret*
+*SECRET*
 
-# IDE and editor specific files
+# ===== IDE & Editor =====
 .vscode/
+.idea/
+*.swp
+*.swo
 .claude/
-cursor/
-
-# Cursor MCP testing configuration (contains API keys and local configs)
 .cursor/
 .cursor/**
-mcp.json
-cursor-mcp-config.json
 
-# Local testing files
+# ===== OS =====
+.DS_Store
+Thumbs.db
+*.log
+
+# ===== Project Specific =====
+# Local testing
 test-mcp-local/
 local-mcp-test/
+mcp.json
+cursor-mcp-config.json
+claude-desktop-config.json
 
-# Bug report folder (preserved locally but excluded from repository)
-bug report/
-
-# Production deployment cleanup - exclude non-essential files
-# Markdown files (except README.md)
+# Local documentation (keep README.md)
 *.md
 !README.md
 
-# Workflow documentation (local only)
-WORKFLOW.md
-
-# Test scripts and testing files
-test-*.js
-test-*.ts
-test-*.cjs
+# Test scripts
 test-*.sh
 test-*.json
-*test*.js
-*test*.ts
-*test*.cjs
-*test*.sh
-debug-*.js
-diagnose-*.js
 check-*.sh
-verify-*.js
-validate-*.ts
 quick-test.sh
-stress-test*.sh
 
-# Development and build scripts
-build-and-test.sh
-deploy-staging.sh
+# Development scripts
 scripts/
-
-# Example files and documentation
 examples/
-manual-test-examples.md
-visual-verification-guide.md
 
-# Configuration files for development
-claude-desktop-config.json
-corrected-campaign.json
-corrected-campaign.jsonc
-production.config.js
-
-# Security: API keys and sensitive configuration
-*api-key*
-*API-KEY*
-*instantly-api*
-*INSTANTLY-API*
-.env.*
-!.env.example
-!.env.production
-*secret*
-*SECRET*
-*token*
-*TOKEN*
-check-exposed-api-key.js
-
-# Package files for distribution testing
-*.tgz
-*.dxt
-dxt-official/
-
-# Build artifacts and temporary files
-tsconfig.tsbuildinfo
-webpack.config.js
-
-# Railway and deployment specific files (keep for production)
-# railway.json - keep
-# railway.toml - keep
-# nixpacks.toml - keep
-# Dockerfile - keep
-# Dockerfile.production - keep
+# Bug reports (local only)
+bug report/
