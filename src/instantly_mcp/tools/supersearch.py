@@ -58,8 +58,10 @@ async def search_supersearch_leads(params: SearchSuperSearchLeadsInput) -> str:
     for key, value in raw_filters.items():
         if value is None:
             continue
-        # For IncludeExcludeFilter objects, ensure both include/exclude are present as arrays (not null)
-        if isinstance(value, dict) and ("include" in value or "exclude" in value):
+        # For IncludeExcludeFilter objects (title, industry, companyName, keywordFilter),
+        # ensure both include/exclude are present as arrays (not null)
+        # But NOT for locations - it uses a different format (LocationFilter)
+        if key != "locations" and isinstance(value, dict) and ("include" in value or "exclude" in value):
             if value.get("include") is None:
                 value["include"] = []
             if value.get("exclude") is None:

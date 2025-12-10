@@ -51,13 +51,26 @@ class LocationItem(BaseModel):
     state: Optional[str] = Field(default=None)
     country: Optional[str] = Field(default=None)
 
+    def model_dump(self, **kwargs) -> dict:
+        """Override to exclude None values - API doesn't want city/state/country as null."""
+        # Always exclude None values for LocationItem
+        kwargs.setdefault("exclude_none", True)
+        return super().model_dump(**kwargs)
+
 
 class LocationFilter(BaseModel):
     """Location filter with include/exclude."""
     model_config = ConfigDict(extra="ignore")
-    
+
     include: Optional[list[LocationItem]] = Field(default=None)
     exclude: Optional[list[LocationItem]] = Field(default=None)
+
+    def model_dump(self, **kwargs) -> dict:
+        """Override to only include specified fields - don't add exclude:[] if not specified."""
+        kwargs.setdefault("exclude_none", True)
+        # Don't use by_alias here since LocationItem handles its own serialization
+        result = super().model_dump(**kwargs)
+        return result
 
 
 class SuperSearchFilters(BaseModel):
