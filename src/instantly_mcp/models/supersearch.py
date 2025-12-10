@@ -88,10 +88,10 @@ class SuperSearchFilters(BaseModel):
         description="Filter by location (city/state/country or place_id)"
     )
 
-    # Job-related
-    title: Optional[IncludeExcludeFilter] = Field(
+    # Job-related - all simple arrays (API doesn't accept include/exclude format)
+    title: Optional[list[str]] = Field(
         default=None,
-        description="Job titles to include/exclude. E.g., {'include': ['CEO', 'CTO']}"
+        description="Job titles to search for. E.g., ['CEO', 'CTO', 'Founder']"
     )
     department: Optional[list[str]] = Field(
         default=None,
@@ -102,14 +102,14 @@ class SuperSearchFilters(BaseModel):
         description="Seniority levels: C-Level, VP-Level, Director-Level, Manager-Level, Staff, Entry-Level"
     )
 
-    # Company-related
-    company_name: Optional[IncludeExcludeFilter] = Field(
+    # Company-related - simple arrays
+    company_name: Optional[list[str]] = Field(
         default=None,
         alias="companyName",
         serialization_alias="companyName",
-        description="Company names to include/exclude"
+        description="Company names to search for"
     )
-    industry: Optional[IncludeExcludeFilter] = Field(
+    industry: Optional[list[str]] = Field(
         default=None,
         description="Industries: Technology, Healthcare, Finance, Manufacturing, Retail, etc."
     )
@@ -135,11 +135,11 @@ class SuperSearchFilters(BaseModel):
         serialization_alias="lookAlike",
         description="Find companies similar to this domain"
     )
-    keyword_filter: Optional[IncludeExcludeFilter] = Field(
+    keyword_filter: Optional[list[str]] = Field(
         default=None,
         alias="keywordFilter",
         serialization_alias="keywordFilter",
-        description="Keywords to include/exclude in company descriptions"
+        description="Keywords to search for in company descriptions"
     )
     funding_type: Optional[list[str]] = Field(
         default=None,

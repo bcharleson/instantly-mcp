@@ -49,24 +49,22 @@ async def search_supersearch_leads(params: SearchSuperSearchLeadsInput) -> str:
     client = get_client()
 
     # Build search_filters - serialize with aliases for camelCase fields
-    # Note: We don't use exclude_none for the main model because some fields
-    # like skipOwnedLeads and showOneLeadPerCompany need to be present even as false
-    raw_filters = params.search_filters.model_dump(by_alias=True)
+    # Note: skipOwnedLeads and showOneLeadPerCompany need to be present even as false
+    raw_filters = params.search_filters.model_dump(by_alias=True, exclude_none=True)
 
-    # Clean up None values but keep required fields
+    # Clean up None values - most fields are simple arrays now
+    # Only locations uses the {"include": [...]} format
     search_filters: dict[str, Any] = {}
     for key, value in raw_filters.items():
         if value is None:
             continue
-        # For IncludeExcludeFilter objects (title, industry, companyName, keywordFilter),
-        # ensure both include/exclude are present as arrays (not null)
-        # But NOT for locations - it uses a different format (LocationFilter)
-        if key != "locations" and isinstance(value, dict) and ("include" in value or "exclude" in value):
-            if value.get("include") is None:
-                value["include"] = []
-            if value.get("exclude") is None:
-                value["exclude"] = []
         search_filters[key] = value
+
+    # Ensure boolean flags are always present
+    if "skipOwnedLeads" not in search_filters:
+        search_filters["skipOwnedLeads"] = False
+    if "showOneLeadPerCompany" not in search_filters:
+        search_filters["showOneLeadPerCompany"] = False
 
     body: dict[str, Any] = {
         "search_filters": search_filters,
