@@ -18,9 +18,21 @@ from pydantic import BaseModel, Field, ConfigDict
 class IncludeExcludeFilter(BaseModel):
     """Filter with include/exclude lists."""
     model_config = ConfigDict(extra="ignore")
-    
+
     include: Optional[list[str]] = Field(default=None, description="Values to include")
     exclude: Optional[list[str]] = Field(default=None, description="Values to exclude")
+
+    def model_dump(self, **kwargs) -> dict:
+        """Override to always include both include and exclude (API requires both)."""
+        result = super().model_dump(**kwargs)
+        # API requires both include and exclude to be present, even if empty
+        if "include" in result or self.include is not None:
+            if "exclude" not in result:
+                result["exclude"] = []
+        if "exclude" in result or self.exclude is not None:
+            if "include" not in result:
+                result["include"] = []
+        return result
 
 
 class LocationItem(BaseModel):
@@ -127,15 +139,15 @@ class SuperSearchFilters(BaseModel):
         description="Company news triggers: launches, hires, receives_financing, expands, new_product"
     )
 
-    # Boolean options
-    skip_owned_leads: Optional[bool] = Field(
-        default=None,
+    # Boolean options - default to false (API requires these to be present)
+    skip_owned_leads: bool = Field(
+        default=False,
         alias="skipOwnedLeads",
         serialization_alias="skipOwnedLeads",
         description="Skip leads already owned by the user"
     )
-    show_one_lead_per_company: Optional[bool] = Field(
-        default=None,
+    show_one_lead_per_company: bool = Field(
+        default=False,
         alias="showOneLeadPerCompany",
         serialization_alias="showOneLeadPerCompany",
         description="Show only one lead per company"

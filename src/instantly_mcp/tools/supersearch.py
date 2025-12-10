@@ -49,7 +49,22 @@ async def search_supersearch_leads(params: SearchSuperSearchLeadsInput) -> str:
     client = get_client()
 
     # Build search_filters - serialize with aliases for camelCase fields
-    search_filters = params.search_filters.model_dump(exclude_none=True, by_alias=True)
+    # Note: We don't use exclude_none for the main model because some fields
+    # like skipOwnedLeads and showOneLeadPerCompany need to be present even as false
+    raw_filters = params.search_filters.model_dump(by_alias=True)
+
+    # Clean up None values but keep required fields
+    search_filters: dict[str, Any] = {}
+    for key, value in raw_filters.items():
+        if value is None:
+            continue
+        # For IncludeExcludeFilter objects, ensure both include/exclude are present
+        if isinstance(value, dict) and ("include" in value or "exclude" in value):
+            if "include" not in value:
+                value["include"] = []
+            if "exclude" not in value:
+                value["exclude"] = []
+        search_filters[key] = value
 
     body: dict[str, Any] = {
         "search_filters": search_filters,
