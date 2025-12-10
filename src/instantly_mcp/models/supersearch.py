@@ -127,6 +127,20 @@ class SuperSearchFilters(BaseModel):
         description="Company news triggers: launches, hires, receives_financing, expands, new_product"
     )
 
+    # Boolean options
+    skip_owned_leads: Optional[bool] = Field(
+        default=None,
+        alias="skipOwnedLeads",
+        serialization_alias="skipOwnedLeads",
+        description="Skip leads already owned by the user"
+    )
+    show_one_lead_per_company: Optional[bool] = Field(
+        default=None,
+        alias="showOneLeadPerCompany",
+        serialization_alias="showOneLeadPerCompany",
+        description="Show only one lead per company"
+    )
+
 
 # =============================================================================
 # Enrichment Type Definitions
@@ -195,6 +209,16 @@ class SearchSuperSearchLeadsInput(BaseModel):
         ge=1,
         le=10000,
         description="Max leads to import (1-10000). Start small to control costs!"
+    )
+
+    # Optional naming
+    search_name: Optional[str] = Field(
+        default=None,
+        description="Name for this search (for tracking purposes)"
+    )
+    list_name: Optional[str] = Field(
+        default=None,
+        description="Name for new list if no resource_id provided"
     )
 
 

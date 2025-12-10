@@ -74,6 +74,12 @@ async def search_supersearch_leads(params: SearchSuperSearchLeadsInput) -> str:
     if params.limit:
         body["limit"] = params.limit
 
+    # Optional naming fields
+    if params.search_name:
+        body["search_name"] = params.search_name
+    if params.list_name:
+        body["list_name"] = params.list_name
+
     try:
         result = await client.post("/supersearch-enrichment/enrich-leads-from-supersearch", json=body)
     except Exception as e:
