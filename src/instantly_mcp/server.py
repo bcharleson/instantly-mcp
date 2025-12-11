@@ -33,7 +33,7 @@ from .tools import get_all_tools, get_requested_categories, is_lazy_loading_enab
 
 # Server metadata
 SERVER_NAME = "instantly-mcp"
-SERVER_VERSION = "1.0.0"
+SERVER_VERSION = "1.0.1"
 SERVER_INSTRUCTIONS = """
 Instantly.ai V2 API MCP Server - Email automation and campaign management.
 

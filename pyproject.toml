@@ -1,6 +1,6 @@
 [project]
 name = "instantly-mcp"
-version = "1.0.0"
+version = "1.0.1"
 description = "Instantly V2 API MCP Server - A lightweight, robust Model Context Protocol server for Instantly.ai email automation"
 readme = "README.md"
 requires-python = ">=3.10"

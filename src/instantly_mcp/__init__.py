@@ -5,7 +5,7 @@ This package provides a Model Context Protocol (MCP) server for interacting
 with the Instantly.ai email automation platform through AI assistants.
 """
 
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 __author__ = "Brandon Charleson"
 
 # Lazy imports to avoid circular import issues
