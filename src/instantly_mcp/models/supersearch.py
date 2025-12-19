@@ -19,19 +19,23 @@ class IncludeExcludeFilter(BaseModel):
     """Filter with include/exclude lists."""
     model_config = ConfigDict(extra="ignore")
 
-    include: Optional[list[str]] = Field(default=None, description="Values to include")
-    exclude: Optional[list[str]] = Field(default=None, description="Values to exclude")
+    include: Optional[list[str]] = Field(default_factory=list, description="Values to include")
+    exclude: Optional[list[str]] = Field(default_factory=list, description="Values to exclude")
 
     def model_dump(self, **kwargs) -> dict:
         """Override to always include both include and exclude (API requires both)."""
+        # Don't use exclude_none for this model - we need empty arrays
+        if "exclude_none" in kwargs:
+            kwargs.pop("exclude_none")
+
         result = super().model_dump(**kwargs)
-        # API requires both include and exclude to be present, even if empty
-        if "include" in result or self.include is not None:
-            if "exclude" not in result:
-                result["exclude"] = []
-        if "exclude" in result or self.exclude is not None:
-            if "include" not in result:
-                result["include"] = []
+
+        # Ensure both include and exclude are always present as arrays (never None)
+        if "include" not in result or result["include"] is None:
+            result["include"] = []
+        if "exclude" not in result or result["exclude"] is None:
+            result["exclude"] = []
+
         return result
 
 
