@@ -88,10 +88,10 @@ class SuperSearchFilters(BaseModel):
         description="Filter by location (city/state/country or place_id)"
     )
 
-    # Job-related - all simple arrays (API doesn't accept include/exclude format)
-    title: Optional[list[str]] = Field(
+    # Job-related filters
+    title: Optional[IncludeExcludeFilter] = Field(
         default=None,
-        description="Job titles to search for. E.g., ['CEO', 'CTO', 'Founder']"
+        description="Job titles filter with include/exclude. E.g., IncludeExcludeFilter(include=['CEO', 'CTO'])"
     )
     department: Optional[list[str]] = Field(
         default=None,
@@ -102,16 +102,16 @@ class SuperSearchFilters(BaseModel):
         description="Seniority levels: C-Level, VP-Level, Director-Level, Manager-Level, Staff, Entry-Level"
     )
 
-    # Company-related - simple arrays
-    company_name: Optional[list[str]] = Field(
+    # Company-related filters
+    company_name: Optional[IncludeExcludeFilter] = Field(
         default=None,
         alias="companyName",
         serialization_alias="companyName",
-        description="Company names to search for"
+        description="Company names filter with include/exclude"
     )
-    industry: Optional[list[str]] = Field(
+    industry: Optional[IncludeExcludeFilter] = Field(
         default=None,
-        description="Industries: Technology, Healthcare, Finance, Manufacturing, Retail, etc."
+        description="Industries filter with include/exclude. E.g., IncludeExcludeFilter(include=['Technology', 'Software'])"
     )
     employee_count: Optional[list[str]] = Field(
         default=None,
@@ -135,11 +135,11 @@ class SuperSearchFilters(BaseModel):
         serialization_alias="lookAlike",
         description="Find companies similar to this domain"
     )
-    keyword_filter: Optional[list[str]] = Field(
+    keyword_filter: Optional[IncludeExcludeFilter] = Field(
         default=None,
         alias="keywordFilter",
         serialization_alias="keywordFilter",
-        description="Keywords to search for in company descriptions"
+        description="Keywords filter with include/exclude for company descriptions"
     )
     funding_type: Optional[list[str]] = Field(
         default=None,
