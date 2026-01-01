@@ -101,18 +101,18 @@ class SuperSearchFilters(BaseModel):
     )
     department: Optional[list[str]] = Field(
         default=None,
-        description="Departments: Engineering, Sales, Marketing, Finance, HR, Operations, Legal, Product, Design, Other"
+        description="Departments: Engineering, Finance & Administration, Human Resources, IT & IS, Marketing, Operations, Sales, Support, Other"
     )
     level: Optional[list[str]] = Field(
         default=None,
-        description="Seniority levels: C-Level, VP-Level, Director-Level, Manager-Level, Staff, Entry-Level"
+        description="Seniority levels: C-Level, VP-Level, Director-Level, Manager-Level, Staff, Entry level, Mid-Senior level, Director, Associate, Owner"
     )
 
     # Company-related filters
     company_name: Optional[IncludeExcludeFilter] = Field(
         default=None,
         alias="companyName",
-        serialization_alias="companyName",
+        serialization_alias="company_name",
         description="Company names filter with include/exclude"
     )
     industry: Optional[IncludeExcludeFilter] = Field(
@@ -122,12 +122,12 @@ class SuperSearchFilters(BaseModel):
     employee_count: Optional[list[str]] = Field(
         default=None,
         alias="employeeCount",
-        serialization_alias="employeeCount",
-        description="Company size ranges: '0 - 25', '25 - 100', '100 - 500', '500 - 1000', '1000+'"
+        serialization_alias="employee_count",
+        description="Company size ranges: '0 - 25', '25 - 100', '100 - 250', '250 - 1000', '1K - 10K', '10K - 50K', '50K - 100K', '> 100K'"
     )
     revenue: Optional[list[str]] = Field(
         default=None,
-        description="Revenue ranges: '$0 - 1M', '$1 - 10M', '$10 - 50M', '$50 - 100M', '$100M+'"
+        description="Revenue ranges: '$0 - 1M', '$1 - 10M', '$10 - 50M', '$50 - 100M', '$100 - 250M', '$250 - 500M', '$500M - 1B', '> $1B'"
     )
     domains: Optional[list[str]] = Field(
         default=None,
@@ -138,37 +138,37 @@ class SuperSearchFilters(BaseModel):
     look_alike: Optional[str] = Field(
         default=None,
         alias="lookAlike",
-        serialization_alias="lookAlike",
+        serialization_alias="look_alike",
         description="Find companies similar to this domain"
     )
     keyword_filter: Optional[IncludeExcludeFilter] = Field(
         default=None,
         alias="keywordFilter",
-        serialization_alias="keywordFilter",
+        serialization_alias="keyword_filter",
         description="Keywords filter with include/exclude for company descriptions"
     )
     funding_type: Optional[list[str]] = Field(
         default=None,
         alias="fundingType",
-        serialization_alias="fundingType",
-        description="Funding stages: angel, seed, series_a, series_b, series_c, series_d, series_e+"
+        serialization_alias="funding_type",
+        description="Funding stages: angel, seed, pre_seed, series_a, series_b, series_c, series_d, series_e, series_f, series_g"
     )
     news: Optional[list[str]] = Field(
         default=None,
-        description="Company news triggers: launches, hires, receives_financing, expands, new_product"
+        description="Company news triggers: launches, expands_offices_to, hires, partners_with, leaves, receives_financing, recognized_as, closes_offices_in, is_developing, has_issues_with"
     )
 
     # Boolean options - default to false (API requires these to be present)
     skip_owned_leads: bool = Field(
         default=False,
         alias="skipOwnedLeads",
-        serialization_alias="skipOwnedLeads",
+        serialization_alias="skip_owned_leads",
         description="Skip leads already owned by the user"
     )
     show_one_lead_per_company: bool = Field(
         default=False,
         alias="showOneLeadPerCompany",
-        serialization_alias="showOneLeadPerCompany",
+        serialization_alias="show_one_lead_per_company",
         description="Show only one lead per company"
     )
 

@@ -48,9 +48,9 @@ async def search_supersearch_leads(params: SearchSuperSearchLeadsInput) -> str:
     """
     client = get_client()
 
-    # Build search_filters - serialize with aliases for camelCase fields
-    # Note: skipOwnedLeads and showOneLeadPerCompany need to be present even as false
-    raw_filters = params.search_filters.model_dump(by_alias=True, exclude_none=True)
+    # Build search_filters - use mode='json' to apply serialization_alias (snake_case for API)
+    # Note: skip_owned_leads and show_one_lead_per_company need to be present even as false
+    raw_filters = params.search_filters.model_dump(mode='json', exclude_none=True)
 
     # Clean up None values - most fields are simple arrays now
     # Only locations uses the {"include": [...]} format
@@ -60,11 +60,11 @@ async def search_supersearch_leads(params: SearchSuperSearchLeadsInput) -> str:
             continue
         search_filters[key] = value
 
-    # Ensure boolean flags are always present
-    if "skipOwnedLeads" not in search_filters:
-        search_filters["skipOwnedLeads"] = False
-    if "showOneLeadPerCompany" not in search_filters:
-        search_filters["showOneLeadPerCompany"] = False
+    # Ensure boolean flags are always present (API requires them)
+    if "skip_owned_leads" not in search_filters:
+        search_filters["skip_owned_leads"] = False
+    if "show_one_lead_per_company" not in search_filters:
+        search_filters["show_one_lead_per_company"] = False
 
     body: dict[str, Any] = {
         "search_filters": search_filters,
