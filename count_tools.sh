@@ -36,11 +36,11 @@ echo "  = TOTAL: $total"
 echo ""
 
 echo "============================================================"
-if [ $total -eq 44 ]; then
-    echo "✅ SUCCESS: All 44 tools are registered!"
+if [ $total -eq 47 ]; then
+    echo "✅ SUCCESS: All 47 tools are registered!"
 else
-    echo "❌ MISMATCH: Expected 44 tools, but found $total"
-    echo "   Difference: $((total - 44))"
+    echo "❌ MISMATCH: Expected 47 tools, but found $total"
+    echo "   Difference: $((total - 47))"
 fi
 echo "============================================================"
 

@@ -48,13 +48,13 @@ try:
     print('')
     
     total = result.get('total_tools', 0)
-    if total == 44:
-        print('✅ SUCCESS: All 44 tools are registered!')
-    elif total in [37, 38]:
-        print(f'⚠️  WARNING: Only {total} tools (expected 44)')
+    if total == 47:
+        print('✅ SUCCESS: All 47 tools are registered!')
+    elif total in [37, 38, 44]:
+        print(f'⚠️  WARNING: Only {total} tools (expected 47)')
         print('   Deployment may not have updated yet.')
     else:
-        print(f'❌ Found {total} tools (expected 44)')
+        print(f'❌ Found {total} tools (expected 47)')
 except Exception as e:
     print(f'Error parsing response: {e}')
     print('Raw response:', file=sys.stderr)

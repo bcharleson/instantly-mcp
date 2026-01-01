@@ -4,7 +4,7 @@ Instantly MCP Server - Main Server
 A lightweight, robust FastMCP server for the Instantly.ai V2 API.
 
 Features:
-- 44 tools across 7 categories (accounts, campaigns, leads, emails, analytics, background_jobs, supersearch)
+- 47 tools across 7 categories (accounts, campaigns, leads, emails, analytics, background_jobs, supersearch)
 - Dual transport support (HTTP for remote, stdio for local)
 - Lazy loading via TOOL_CATEGORIES environment variable
 - Per-request API key support for multi-tenant deployments
@@ -38,7 +38,7 @@ SERVER_INSTRUCTIONS = """
 Instantly.ai V2 API MCP Server - Email automation and campaign management.
 
 Categories: accounts, campaigns, leads, emails, analytics, background_jobs, supersearch
-Total tools: 44 (configurable via TOOL_CATEGORIES env var)
+Total tools: 47 (configurable via TOOL_CATEGORIES env var)
 
 Authentication methods for HTTP deployments:
 1. URL path: /mcp/YOUR_API_KEY
@@ -115,12 +115,15 @@ def register_tools():
         "get_background_job": {"readOnlyHint": True},
 
         # SuperSearch tools
+        "count_leads": {"readOnlyHint": True},
+        "preview_leads": {"readOnlyHint": True},
         "search_supersearch_leads": {"destructiveHint": False},
         "get_enrichment_status": {"readOnlyHint": True},
         "create_enrichment": {"destructiveHint": False},
         "create_ai_enrichment": {"destructiveHint": False},
         "run_enrichment": {"destructiveHint": False},
         "get_enrichment_history": {"readOnlyHint": True},
+        "update_enrichment_settings": {"destructiveHint": False},
     }
     
     for tool_func in tools:
@@ -172,7 +175,7 @@ async def get_server_info() -> str:
             "emails": 6 if "emails" in categories else 0,
             "analytics": 3 if "analytics" in categories else 0,
             "background_jobs": 2 if "background_jobs" in categories else 0,
-            "supersearch": 6 if "supersearch" in categories else 0,
+            "supersearch": 9 if "supersearch" in categories else 0,
         },
         "total_tools": sum([
             6 if "accounts" in categories else 0,
@@ -181,7 +184,7 @@ async def get_server_info() -> str:
             6 if "emails" in categories else 0,
             3 if "analytics" in categories else 0,
             2 if "background_jobs" in categories else 0,
-            6 if "supersearch" in categories else 0,
+            9 if "supersearch" in categories else 0,
         ]) + 1,  # +1 for get_server_info
         "rate_limit": {
             "remaining": client.rate_limit.remaining,

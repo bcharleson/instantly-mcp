@@ -54,7 +54,7 @@ def main():
         print(f"  {i:2d}. {tool.__name__}")
     
     # Verify expected count
-    expected = 44
+    expected = 47
     actual = len(all_tools) + 1  # +1 for get_server_info which is registered separately
     
     print("\n" + "=" * 60)

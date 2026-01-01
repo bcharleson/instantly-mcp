@@ -1,14 +1,15 @@
 """
 Instantly MCP Server - SuperSearch Enrichment Tools
 
-6 tools for lead discovery and enrichment using Instantly's SuperSearch.
+9 tools for lead discovery and enrichment using Instantly's SuperSearch.
 
 SuperSearch allows you to:
 1. Search Instantly's lead database by ICP (Ideal Customer Profile)
 2. Import matching leads to campaigns/lists
 3. Enrich leads with contact info, company data, and AI-generated content
 
-💰 CREDIT-BASED: All SuperSearch operations consume credits from your Instantly account.
+💰 CREDIT-BASED: Most SuperSearch operations consume credits from your Instantly account.
+💡 FREE TOOLS: count_leads and preview_leads are free and help you validate searches before committing credits.
 """
 
 import json

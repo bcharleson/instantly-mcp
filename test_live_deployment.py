@@ -85,12 +85,12 @@ def test_server_info(api_key: str):
         print(f"  - Total Tools: {total_tools}")
         print()
         
-        if total_tools == 44:
-            print("✅ SUCCESS: All 44 tools are registered!")
+        if total_tools == 47:
+            print("✅ SUCCESS: All 47 tools are registered!")
             print("✅ Deployment is up to date!")
             return 0
-        elif total_tools in [37, 38]:
-            print(f"⚠️  WARNING: Only {total_tools} tools found (expected 44)")
+        elif total_tools in [37, 38, 44]:
+            print(f"⚠️  WARNING: Only {total_tools} tools found (expected 47)")
             print("   This means the deployment hasn't picked up the latest changes yet.")
             print()
             print("   Possible reasons:")
@@ -103,7 +103,7 @@ def test_server_info(api_key: str):
             print("   - Manually trigger deployment if needed")
             return 1
         else:
-            print(f"❌ UNEXPECTED: Found {total_tools} tools (expected 44)")
+            print(f"❌ UNEXPECTED: Found {total_tools} tools (expected 47)")
             return 1
             
     except Exception as e:

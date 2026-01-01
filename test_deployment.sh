@@ -53,14 +53,14 @@ echo "  - Server Version: $VERSION"
 echo "  - Total Tools: $TOOL_COUNT"
 echo ""
 
-if [ "$TOOL_COUNT" = "44" ]; then
-    echo "✅ SUCCESS: All 44 tools are registered!"
-elif [ "$TOOL_COUNT" = "38" ] || [ "$TOOL_COUNT" = "37" ]; then
-    echo "⚠️  WARNING: Only $TOOL_COUNT tools found (expected 44)"
+if [ "$TOOL_COUNT" = "47" ]; then
+    echo "✅ SUCCESS: All 47 tools are registered!"
+elif [ "$TOOL_COUNT" = "38" ] || [ "$TOOL_COUNT" = "37" ] || [ "$TOOL_COUNT" = "44" ]; then
+    echo "⚠️  WARNING: Only $TOOL_COUNT tools found (expected 47)"
     echo "   This means the deployment hasn't picked up the latest changes yet."
     echo "   The server might still be deploying or needs a manual restart."
 else
-    echo "❌ UNEXPECTED: Found $TOOL_COUNT tools (expected 44)"
+    echo "❌ UNEXPECTED: Found $TOOL_COUNT tools (expected 47)"
 fi
 echo "============================================================"
 
