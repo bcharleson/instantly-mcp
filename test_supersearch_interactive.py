@@ -24,6 +24,7 @@ from instantly_mcp.models.supersearch import (
     SuperSearchFilters,
     LocationFilter,
     LocationItem,
+    IncludeExcludeFilter,
     GetEnrichmentStatusInput,
     GetEnrichmentHistoryInput,
     CreateEnrichmentInput,
@@ -55,8 +56,8 @@ async def test_ceos_in_tech():
     params = SearchSuperSearchLeadsInput(
         list_name="Test - CEOs in Tech",
         search_filters=SuperSearchFilters(
-            title=["CEO", "Chief Executive Officer"],
-            industry=["Technology", "Software"],
+            title=IncludeExcludeFilter(include=["CEO", "Chief Executive Officer"]),
+            industry=IncludeExcludeFilter(include=["Technology", "Software"]),
         ),
         limit=5,
         search_name="Interactive Test - CEOs"
