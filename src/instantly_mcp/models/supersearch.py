@@ -189,14 +189,20 @@ EnrichmentType = Literal[
     "custom_flow",                # Custom enrichment flow
 ]
 
-AIModelType = Literal[
-    "gpt-3.5-turbo", "gpt-4", "gpt-4o", "gpt-4o-mini", "gpt-4.1",
-    "claude-3-5-sonnet", "claude-3-opus", "claude-3-haiku",
-    "gemini-1.5-pro", "gemini-1.5-flash",
-    "grok-2",
-    "perplexity-sonar",
-    "instantly-ai-agent",
+# AI Model versions as documented in Instantly API v2
+# These are the exact values the API expects for model_version
+AIModelVersion = Literal[
+    "3.5",              # GPT-3.5 Turbo
+    "4.0",              # GPT-4
+    "gpt-4o",           # GPT-4o
+    "gpt-4.1",          # GPT-4.1
+    "gpt-4.1-mini",     # GPT-4.1 Mini
+    "claude-3.7-sonnet",  # Claude 3.7 Sonnet
+    "o3",               # OpenAI o3
 ]
+
+# Keep for backwards compatibility but prefer AIModelVersion
+AIModelType = AIModelVersion
 
 
 # =============================================================================
@@ -304,12 +310,25 @@ class CreateAIEnrichmentInput(BaseModel):
     - Personalized email openers
     - Lead scoring
     - Company research summaries
+
+    Available model_version values:
+    - "3.5" (GPT-3.5 Turbo)
+    - "4.0" (GPT-4)
+    - "gpt-4o" (GPT-4o)
+    - "gpt-4.1" (GPT-4.1)
+    - "gpt-4.1-mini" (GPT-4.1 Mini - recommended, cost-effective)
+    - "claude-3.7-sonnet" (Claude 3.7 Sonnet)
+    - "o3" (OpenAI o3)
     """
     model_config = ConfigDict(str_strip_whitespace=True, extra="ignore")
 
     resource_id: str = Field(
         ...,
         description="List or Campaign UUID"
+    )
+    resource_type: int = Field(
+        default=2,
+        description="Resource type: 1=Campaign, 2=List (default: 2)"
     )
     prompt: str = Field(
         ...,
@@ -319,13 +338,27 @@ class CreateAIEnrichmentInput(BaseModel):
         ...,
         description="Column name to store AI output"
     )
-    model: AIModelType = Field(
-        default="gpt-4o-mini",
-        description="AI model to use"
+    model_version: AIModelVersion = Field(
+        default="gpt-4.1-mini",
+        description="AI model version: 3.5, 4.0, gpt-4o, gpt-4.1, gpt-4.1-mini, claude-3.7-sonnet, o3"
     )
     input_columns: Optional[list[str]] = Field(
         default=None,
         description="Lead columns to include as context (auto-detected from prompt if not specified)"
+    )
+    overwrite: Optional[bool] = Field(
+        default=None,
+        description="Overwrite existing values in output_column"
+    )
+    auto_update: Optional[bool] = Field(
+        default=None,
+        description="Automatically enrich new leads added to this resource"
+    )
+    limit: Optional[int] = Field(
+        default=None,
+        ge=1,
+        le=1000000,
+        description="Maximum number of leads to enrich"
     )
 
 
@@ -366,5 +399,62 @@ class GetEnrichmentHistoryInput(BaseModel):
     starting_after: Optional[str] = Field(
         default=None,
         description="Pagination cursor"
+    )
+
+
+class CountLeadsInput(BaseModel):
+    """
+    Input for counting leads matching search criteria.
+
+    ✅ FREE: This operation does NOT consume credits.
+    Use this to estimate lead volume before running enrichment.
+    """
+    model_config = ConfigDict(str_strip_whitespace=True, extra="ignore")
+
+    search_filters: "SuperSearchFilters" = Field(
+        ...,
+        description="ICP filters to count matching leads"
+    )
+
+
+class PreviewLeadsInput(BaseModel):
+    """
+    Input for previewing leads matching search criteria.
+
+    ✅ FREE: This operation does NOT consume credits.
+    Use this to preview sample leads before committing to enrichment.
+    Returns up to 10 sample leads.
+    """
+    model_config = ConfigDict(str_strip_whitespace=True, extra="ignore")
+
+    search_filters: "SuperSearchFilters" = Field(
+        ...,
+        description="ICP filters to preview matching leads"
+    )
+
+
+class UpdateEnrichmentSettingsInput(BaseModel):
+    """
+    Input for updating enrichment settings on a resource.
+
+    Use this to modify auto_update, skip_rows_without_email, or is_evergreen settings.
+    """
+    model_config = ConfigDict(str_strip_whitespace=True, extra="ignore")
+
+    resource_id: str = Field(
+        ...,
+        description="List or Campaign UUID"
+    )
+    auto_update: Optional[bool] = Field(
+        default=None,
+        description="Automatically enrich new leads added to this resource"
+    )
+    skip_rows_without_email: Optional[bool] = Field(
+        default=None,
+        description="Skip leads that don't have an email address"
+    )
+    is_evergreen: Optional[bool] = Field(
+        default=None,
+        description="Keep enriching to maintain data freshness"
     )
 
