@@ -85,6 +85,23 @@ class SuperSearchFilters(BaseModel):
 
     Use these to define your Ideal Customer Profile (ICP).
     All filters are optional - combine as needed.
+
+    WORKING FILTERS:
+    - title: Job titles with include/exclude (RECOMMENDED - most flexible)
+    - employee_count: Company size ranges like "25 - 100", "100 - 250"
+    - department: Departments like "Sales", "Engineering" (works best with title)
+    - locations: Filter by city/state/country
+    - domains: Specific company domains to search
+    - company_name: Company names with include/exclude
+    - revenue: Revenue ranges like "$1 - 10M"
+    - funding_type: Funding stages like "series_a", "seed"
+    - look_alike: Find companies similar to a domain
+
+    Example - Find CEOs at small companies:
+        SuperSearchFilters(
+            title=IncludeExcludeFilter(include=["CEO", "Chief Executive Officer"]),
+            employee_count=["25 - 100"]
+        )
     """
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
@@ -103,10 +120,8 @@ class SuperSearchFilters(BaseModel):
         default=None,
         description="Departments: Engineering, Finance & Administration, Human Resources, IT & IS, Marketing, Operations, Sales, Support, Other"
     )
-    level: Optional[list[str]] = Field(
-        default=None,
-        description="Seniority levels: C-Level, VP-Level, Director-Level, Manager-Level, Staff, Entry level, Mid-Senior level, Director, Associate, Owner"
-    )
+    # NOTE: 'level' filter removed - returns 0 results in Instantly API v2
+    # Use 'title' filter with specific titles instead (e.g., "CEO", "VP", "Director")
 
     # Company-related filters
     company_name: Optional[IncludeExcludeFilter] = Field(
@@ -115,10 +130,8 @@ class SuperSearchFilters(BaseModel):
         serialization_alias="company_name",
         description="Company names filter with include/exclude"
     )
-    industry: Optional[IncludeExcludeFilter] = Field(
-        default=None,
-        description="Industries filter with include/exclude. E.g., IncludeExcludeFilter(include=['Technology', 'Software'])"
-    )
+    # NOTE: 'industry' filter removed - returns Bad Request in Instantly API v2
+    # Use 'title' filter with industry-specific role names or 'domains' for specific companies
     employee_count: Optional[list[str]] = Field(
         default=None,
         alias="employeeCount",
@@ -141,12 +154,8 @@ class SuperSearchFilters(BaseModel):
         serialization_alias="look_alike",
         description="Find companies similar to this domain"
     )
-    keyword_filter: Optional[IncludeExcludeFilter] = Field(
-        default=None,
-        alias="keywordFilter",
-        serialization_alias="keyword_filter",
-        description="Keywords filter with include/exclude for company descriptions"
-    )
+    # NOTE: 'keyword_filter' (keywordFilter) removed - returns Bad Request in Instantly API v2
+    # Use 'title' filter or 'domains' filter instead
     funding_type: Optional[list[str]] = Field(
         default=None,
         alias="fundingType",

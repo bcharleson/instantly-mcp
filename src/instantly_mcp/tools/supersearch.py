@@ -31,12 +31,12 @@ from ..models.supersearch import (
 
 async def search_supersearch_leads(params: SearchSuperSearchLeadsInput) -> str:
     """
-    🔍 Search SuperSearch for leads matching your ICP and import them.
+    Search SuperSearch for leads matching your ICP and import them.
 
-    💰 CREDITS: Each lead imported consumes credits. Use 'limit' to control costs.
-    💡 TIP: Use count_leads or preview_leads FIRST (free) to validate your search.
+    CREDITS: Each lead imported consumes credits. Use 'limit' to control costs.
+    TIP: Use count_leads or preview_leads FIRST (free) to validate your search.
 
-    ⏳ ASYNC OPERATION: Enrichment runs in the background. The response returns immediately
+    ASYNC OPERATION: Enrichment runs in the background. The response returns immediately
     with a resource_id, but enrichment may take seconds to minutes depending on volume.
 
     RECOMMENDED WORKFLOW:
@@ -46,10 +46,19 @@ async def search_supersearch_leads(params: SearchSuperSearchLeadsInput) -> str:
     4. get_enrichment_status - Check if enrichment is complete (in_progress: true/false)
     5. list_leads - Retrieve the enriched leads once complete
 
-    Example filters:
-    - CEOs: title.include=["CEO", "Chief Executive Officer"]
-    - Sales VPs in California: department=["Sales"], level=["VP-Level"], locations.include=[{state: "California", country: "United States"}]
-    - Small tech companies: employeeCount=["25 - 100"], industry.include=["Software"]
+    WORKING FILTERS:
+    - title: {"include": ["CEO", "CTO"], "exclude": ["Intern"]} - RECOMMENDED
+    - employee_count: ["25 - 100", "100 - 250"]
+    - department: ["Sales", "Engineering"] - works best with title
+    - locations: {"include": [{"country": "United States", "state": "California"}]}
+    - domains: ["company.com", "another.com"]
+    - company_name: {"include": ["Acme Corp"]}
+    - revenue: ["$1 - 10M", "$10 - 50M"]
+
+    EXAMPLES:
+    - CEOs at small companies: title.include=["CEO"], employee_count=["25 - 100"]
+    - Sales VPs in California: title.include=["VP Sales", "VP of Sales"], locations.include=[{state: "California"}]
+    - Directors at specific companies: title.include=["Director"], domains=["target.com"]
     """
     client = get_client()
 
@@ -322,13 +331,24 @@ async def count_leads(params: CountLeadsInput) -> str:
     """
     Count leads matching your ICP criteria WITHOUT consuming credits.
 
-    ✅ FREE OPERATION - Use this before search_supersearch_leads to:
+    FREE OPERATION - Use this before search_supersearch_leads to:
     - Estimate the size of your target audience
     - Validate your search filters work as expected
     - Make informed decisions about credit usage
 
     Returns the number of leads matching your criteria (capped at 1,000,000).
     A count of 0 means no leads match the specified filters.
+
+    WORKING FILTERS:
+    - title: {"include": ["CEO", "CTO"]} - RECOMMENDED, most flexible
+    - employee_count: ["25 - 100", "100 - 250"]
+    - department: ["Sales", "Engineering"]
+    - locations: {"include": [{"country": "United States"}]}
+    - domains: ["company.com"]
+    - revenue: ["$1 - 10M"]
+
+    EXAMPLE: Count CEOs at small companies
+    {"title": {"include": ["CEO"]}, "employee_count": ["25 - 100"]}
     """
     client = get_client()
 
@@ -367,12 +387,23 @@ async def preview_leads(params: PreviewLeadsInput) -> str:
     """
     Preview sample leads matching your ICP criteria WITHOUT consuming credits.
 
-    ✅ FREE OPERATION - Use this before search_supersearch_leads to:
+    FREE OPERATION - Use this before search_supersearch_leads to:
     - See real examples of leads that match your criteria
     - Verify the quality and relevance of potential leads
     - Review titles, companies, and locations before committing credits
 
-    Returns up to 10 sample leads for review.
+    Returns up to 50 sample leads for review.
+
+    WORKING FILTERS:
+    - title: {"include": ["CEO", "CTO"]} - RECOMMENDED, most flexible
+    - employee_count: ["25 - 100", "100 - 250"]
+    - department: ["Sales", "Engineering"]
+    - locations: {"include": [{"country": "United States"}]}
+    - domains: ["company.com"]
+    - revenue: ["$1 - 10M"]
+
+    EXAMPLE: Preview Sales VPs
+    {"title": {"include": ["VP Sales", "VP of Sales", "Sales VP"]}}
     """
     client = get_client()
 
