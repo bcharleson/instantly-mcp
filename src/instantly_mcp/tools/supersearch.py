@@ -84,11 +84,16 @@ async def search_supersearch_leads(params: SearchSuperSearchLeadsInput) -> str:
         "search_filters": search_filters,
     }
 
-    # API uses resource_id for both lists and campaigns
-    if params.list_id:
+    # API uses resource_id for both lists and campaigns (mutually exclusive)
+    if params.list_id and params.campaign_id:
+        return json.dumps({
+            "error": "Cannot specify both list_id and campaign_id",
+            "hint": "Provide either list_id OR campaign_id, not both"
+        }, indent=2)
+    elif params.list_id:
         body["resource_id"] = params.list_id
         body["resource_type"] = 2  # 2 = List
-    if params.campaign_id:
+    elif params.campaign_id:
         body["resource_id"] = params.campaign_id
         body["resource_type"] = 1  # 1 = Campaign
 
